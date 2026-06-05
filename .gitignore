@@ -1,0 +1,20 @@
+# Godot local cache
+.godot/
+
+# Build outputs
+build/
+builds/
+dist/
+exports/
+
+# Local temporary files
+*.tmp
+*.temp
+*.bak
+*.swp
+*~
+
+# Operating-system metadata
+.DS_Store
+Thumbs.db
+desktop.ini

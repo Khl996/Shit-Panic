@@ -1,4 +1,6 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=21 format=3]
+
+[ext_resource type="Script" path="res://scripts/game_controller.gd" id="1_game_controller"]
 
 [sub_resource type="StyleBoxFlat" id="PanelOuter"]
 bg_color = Color(0.0392157, 0.054902, 0.0588235, 1)
@@ -217,6 +219,7 @@ anchor_bottom = 1.0
 grow_horizontal = 2
 grow_vertical = 2
 layout_direction = 2
+script = ExtResource("1_game_controller")
 
 [node name="Background" type="ColorRect" parent="."]
 layout_mode = 1
@@ -296,7 +299,7 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
 theme_override_font_sizes/font_size = 36
-text = "01:18"
+text = "01:30"
 horizontal_alignment = 1
 
 [node name="TimerLabel" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock"]
@@ -332,7 +335,7 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
 theme_override_font_sizes/font_size = 24
-text = "76%"
+text = "100%"
 horizontal_alignment = 2
 
 [node name="IntegrityBar" type="ProgressBar" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock"]
@@ -342,7 +345,7 @@ layout_direction = 2
 theme_override_styles/background = SubResource("MeterBg")
 theme_override_styles/fill = SubResource("MeterStable")
 max_value = 100.0
-value = 76.0
+value = 100.0
 fill_mode = 0
 show_percentage = false
 

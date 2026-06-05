@@ -1,8 +1,8 @@
 # Shift Panic
 
-Shift Panic: Manual Override is a single-player Godot prototype about operating a one-screen panic console under pressure. The current build is a live deterministic simulation foundation for the console interface.
+Shift Panic: Manual Override is a single-player Godot prototype about operating a one-screen panic console under pressure. The current build adds functional intervention controls on top of the live deterministic simulation.
 
-Current status: `Milestone 2 - Playable Core State and Timer`
+Current status: `Milestone 3 - Intervention Controls and Cooldowns`
 
 Engine requirement: Godot 4 Standard.
 
@@ -26,15 +26,22 @@ Engine requirement: Godot 4 Standard.
 - Internal panic-level calculation.
 - Internal reset foundation.
 - Running and time-expired states.
+- Functional intervention buttons.
+- Physical keyboard shortcuts 1-5.
+- Five intervention tradeoffs.
+- Independent cooldowns.
+- Temporary Reroute cooling penalty.
+- System Reset foundation.
+- Manual Override with two uses.
+- Global control lock.
+- Action feedback.
+- Reset foundation for intervention state.
 - Static alarm feed.
-- Five static intervention controls.
 - Permanent project rules in `AGENTS.md`.
 - Godot-appropriate `.gitignore`.
 
 ## Not Implemented Yet
 
-- Button actions.
-- Cooldowns.
 - Random events.
 - Dynamic alarm feed.
 - Win/loss.
@@ -45,4 +52,4 @@ Engine requirement: Godot 4 Standard.
 - Tests.
 - External assets.
 
-Next unapproved milestone: `Milestone 3 - Intervention Controls and Cooldowns`
+Next unapproved milestone: `Milestone 4 - Event Director and Dynamic Alarm Feed`

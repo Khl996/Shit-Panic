@@ -3,6 +3,8 @@ extends Control
 @export var round_duration_seconds: float = 90.0
 
 var facility_state: FacilityState
+var intervention_controller: InterventionController
+var _controls_expired_notified: bool = false
 
 const STABLE_COLOR: Color = Color(0.411765, 0.717647, 0.682353, 1)
 const WARNING_COLOR: Color = Color(0.831373, 0.603922, 0.164706, 1)
@@ -30,6 +32,14 @@ const DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1)
 @onready var power_trend_label: Label = get_node("OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout/PowerStatusBlock/PowerTrend")
 @onready var power_led: Panel = get_node("OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerTop/PowerLed")
 
+@onready var action_feedback_label: Label = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ActionFeedback")
+@onready var override_remaining_label: Label = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ActionHeader/OverrideRemaining")
+@onready var cool_button: Button = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow/CoolButton")
+@onready var vent_button: Button = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow/VentButton")
+@onready var reroute_button: Button = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow/RerouteButton")
+@onready var reset_button: Button = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow/ResetButton")
+@onready var override_button: Button = get_node("OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow/OverrideButton")
+
 var _bar_styles: Dictionary = {}
 var _led_styles: Dictionary = {}
 
@@ -38,17 +48,28 @@ func _ready() -> void:
 	_build_status_styles()
 	facility_state = FacilityState.new(round_duration_seconds)
 	_validate_required_nodes()
+	_configure_interventions()
 	_update_ui()
 
 
 func _process(delta: float) -> void:
 	if facility_state.round_state == FacilityState.RoundState.RUNNING:
 		facility_state.advance(delta)
+		intervention_controller.advance(delta)
 		_update_ui()
+		if facility_state.round_state == FacilityState.RoundState.TIME_EXPIRED:
+			_notify_controls_expired()
+
+
+func _unhandled_input(event: InputEvent) -> void:
+	if intervention_controller.handle_key_input(event):
+		get_viewport().set_input_as_handled()
 
 
 func reset_round() -> void:
 	facility_state.reset(round_duration_seconds)
+	_controls_expired_notified = false
+	intervention_controller.reset()
 	_update_ui()
 
 
@@ -72,12 +93,41 @@ func _validate_required_nodes() -> void:
 		power_state_label,
 		power_trend_label,
 		power_led,
+		action_feedback_label,
+		override_remaining_label,
+		cool_button,
+		vent_button,
+		reroute_button,
+		reset_button,
+		override_button,
 	]
 
 	for required_node: Node in required_nodes:
 		if not is_instance_valid(required_node):
 			push_error("ManualOverride is missing a required UI node for Milestone 2.")
 			assert(false)
+
+
+func _configure_interventions() -> void:
+	intervention_controller = InterventionController.new()
+	intervention_controller.configure(
+		facility_state,
+		cool_button,
+		vent_button,
+		reroute_button,
+		reset_button,
+		override_button,
+		override_remaining_label,
+		action_feedback_label
+	)
+	intervention_controller.state_changed.connect(_update_ui)
+
+
+func _notify_controls_expired() -> void:
+	if _controls_expired_notified:
+		return
+	_controls_expired_notified = true
+	intervention_controller.expire_controls()
 
 
 func _update_ui() -> void:

@@ -43,6 +43,18 @@ const BASE_CRITICAL_DRAIN_PER_SECOND: float = 0.75
 const EXCESS_CRITICAL_DRAIN_PER_SECOND: float = 0.08
 const MULTIPLE_CRITICAL_DRAIN_BONUS: float = 0.45
 
+const EMERGENCY_COOL_TEMPERATURE_DELTA: float = -12.0
+const EMERGENCY_COOL_POWER_DELTA: float = 6.0
+const PRESSURE_VENT_PRESSURE_DELTA: float = -16.0
+const PRESSURE_VENT_TEMPERATURE_DELTA: float = 5.0
+const POWER_REROUTE_POWER_DELTA: float = -14.0
+const REROUTE_COOLING_PENALTY_DURATION: float = 6.0
+const REROUTE_TEMPERATURE_PENALTY_PER_SECOND: float = 0.9
+const SYSTEM_RESET_POWER_DELTA: float = 4.0
+const MANUAL_OVERRIDE_PRIMARY_DELTA: float = -22.0
+const MANUAL_OVERRIDE_SIDE_DELTA: float = 5.0
+const MANUAL_OVERRIDE_INTEGRITY_RESTORE: float = 4.0
+
 var temperature: float = INITIAL_TEMPERATURE
 var pressure: float = INITIAL_PRESSURE
 var power_load: float = INITIAL_POWER_LOAD
@@ -61,6 +73,10 @@ var _trend_sample_time: float = 0.0
 var _sampled_temperature: float = INITIAL_TEMPERATURE
 var _sampled_pressure: float = INITIAL_PRESSURE
 var _sampled_power_load: float = INITIAL_POWER_LOAD
+var _temperature_offset: float = 0.0
+var _pressure_offset: float = 0.0
+var _power_load_offset: float = 0.0
+var _reroute_cooling_penalty_remaining: float = 0.0
 
 
 func _init(round_duration_seconds: float = DEFAULT_ROUND_DURATION_SECONDS) -> void:
@@ -84,6 +100,10 @@ func reset(round_duration_seconds: float = DEFAULT_ROUND_DURATION_SECONDS) -> vo
 	_sampled_temperature = temperature
 	_sampled_pressure = pressure
 	_sampled_power_load = power_load
+	_temperature_offset = 0.0
+	_pressure_offset = 0.0
+	_power_load_offset = 0.0
+	_reroute_cooling_penalty_remaining = 0.0
 
 
 func advance(delta_seconds: float) -> void:
@@ -95,6 +115,7 @@ func advance(delta_seconds: float) -> void:
 	elapsed_time = minf(elapsed_time + safe_delta, _round_duration_seconds)
 	remaining_time = maxf(_round_duration_seconds - elapsed_time, 0.0)
 
+	_update_temporary_modifiers(safe_delta)
 	_update_system_values(elapsed_time)
 	_update_trends(previous_elapsed_time)
 	_update_integrity(safe_delta)
@@ -134,12 +155,72 @@ func get_critical_system_count() -> int:
 	return critical_count
 
 
+func has_active_temporary_modifier() -> bool:
+	return _reroute_cooling_penalty_remaining > 0.0
+
+
+func apply_emergency_cooling() -> void:
+	_temperature_offset += EMERGENCY_COOL_TEMPERATURE_DELTA
+	_power_load_offset += EMERGENCY_COOL_POWER_DELTA
+	_update_system_values(elapsed_time)
+
+
+func apply_pressure_vent() -> void:
+	_pressure_offset += PRESSURE_VENT_PRESSURE_DELTA
+	_temperature_offset += PRESSURE_VENT_TEMPERATURE_DELTA
+	_update_system_values(elapsed_time)
+
+
+func apply_power_reroute() -> void:
+	_power_load_offset += POWER_REROUTE_POWER_DELTA
+	_reroute_cooling_penalty_remaining = REROUTE_COOLING_PENALTY_DURATION
+	_update_system_values(elapsed_time)
+
+
+func apply_system_reset() -> bool:
+	if not has_active_temporary_modifier():
+		return false
+	_reroute_cooling_penalty_remaining = 0.0
+	_power_load_offset += SYSTEM_RESET_POWER_DELTA
+	_update_system_values(elapsed_time)
+	return true
+
+
+func apply_manual_override() -> String:
+	# Ties resolve Temperature, then Pressure, then Power Load for deterministic playtests.
+	var target_name: String = "TEMPERATURE"
+	if pressure > temperature and pressure >= power_load:
+		target_name = "PRESSURE"
+	elif power_load > temperature and power_load > pressure:
+		target_name = "POWER LOAD"
+
+	match target_name:
+		"TEMPERATURE":
+			_temperature_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
+			_pressure_offset += MANUAL_OVERRIDE_SIDE_DELTA
+			_power_load_offset += MANUAL_OVERRIDE_SIDE_DELTA
+		"PRESSURE":
+			_pressure_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
+			_temperature_offset += MANUAL_OVERRIDE_SIDE_DELTA
+			_power_load_offset += MANUAL_OVERRIDE_SIDE_DELTA
+		"POWER LOAD":
+			_power_load_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
+			_temperature_offset += MANUAL_OVERRIDE_SIDE_DELTA
+			_pressure_offset += MANUAL_OVERRIDE_SIDE_DELTA
+
+	integrity = clampf(integrity + MANUAL_OVERRIDE_INTEGRITY_RESTORE, MIN_VALUE, MAX_VALUE)
+	_update_system_values(elapsed_time)
+	_update_panic_level()
+	return target_name
+
+
 func _update_system_values(time_seconds: float) -> void:
 	temperature = clampf(
 		INITIAL_TEMPERATURE
 		+ (TEMPERATURE_DRIFT_PER_SECOND * time_seconds)
 		+ (sin(time_seconds * 0.16) * TEMPERATURE_WAVE_AMOUNT)
-		- (sin(time_seconds * 0.047) * 2.5),
+		- (sin(time_seconds * 0.047) * 2.5)
+		+ _temperature_offset,
 		MIN_VALUE,
 		MAX_VALUE
 	)
@@ -147,7 +228,8 @@ func _update_system_values(time_seconds: float) -> void:
 		INITIAL_PRESSURE
 		+ (PRESSURE_DRIFT_PER_SECOND * time_seconds)
 		+ ((sin((time_seconds * 0.11) + 0.5) - sin(0.5)) * PRESSURE_WAVE_AMOUNT)
-		+ (sin(time_seconds * 0.29) * 4.0),
+		+ (sin(time_seconds * 0.29) * 4.0)
+		+ _pressure_offset,
 		MIN_VALUE,
 		MAX_VALUE
 	)
@@ -155,10 +237,20 @@ func _update_system_values(time_seconds: float) -> void:
 		INITIAL_POWER_LOAD
 		+ (POWER_DRIFT_PER_SECOND * time_seconds)
 		+ ((sin((time_seconds * 0.13) + 1.4) - sin(1.4)) * POWER_WAVE_AMOUNT)
-		- (sin(time_seconds * 0.05) * 3.0),
+		- (sin(time_seconds * 0.05) * 3.0)
+		+ _power_load_offset,
 		MIN_VALUE,
 		MAX_VALUE
 	)
+
+
+func _update_temporary_modifiers(delta_seconds: float) -> void:
+	if _reroute_cooling_penalty_remaining <= 0.0:
+		return
+
+	var active_delta: float = minf(delta_seconds, _reroute_cooling_penalty_remaining)
+	_temperature_offset += REROUTE_TEMPERATURE_PENALTY_PER_SECOND * active_delta
+	_reroute_cooling_penalty_remaining = maxf(_reroute_cooling_penalty_remaining - delta_seconds, 0.0)
 
 
 func _update_trends(previous_elapsed_time: float) -> void:

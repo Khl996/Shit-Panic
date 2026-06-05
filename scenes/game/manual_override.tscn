@@ -1,0 +1,1047 @@
+[gd_scene load_steps=20 format=3]
+
+[sub_resource type="StyleBoxFlat" id="PanelOuter"]
+bg_color = Color(0.0392157, 0.054902, 0.0588235, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.196078, 0.282353, 0.286275, 1)
+corner_radius_top_left = 4
+corner_radius_top_right = 4
+corner_radius_bottom_right = 4
+corner_radius_bottom_left = 4
+
+[sub_resource type="StyleBoxFlat" id="PanelRaised"]
+bg_color = Color(0.0901961, 0.113725, 0.117647, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.239216, 0.317647, 0.313726, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+
+[sub_resource type="StyleBoxFlat" id="PanelInset"]
+bg_color = Color(0.0627451, 0.0823529, 0.0862745, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.164706, 0.223529, 0.227451, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+
+[sub_resource type="StyleBoxFlat" id="MeterBg"]
+bg_color = Color(0.0196078, 0.027451, 0.0313726, 1)
+border_width_left = 1
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.164706, 0.223529, 0.227451, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="MeterStable"]
+bg_color = Color(0.411765, 0.717647, 0.682353, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="MeterWarning"]
+bg_color = Color(0.831373, 0.603922, 0.164706, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="MeterDanger"]
+bg_color = Color(0.788235, 0.294118, 0.258824, 1)
+corner_radius_top_left = 1
+corner_radius_top_right = 1
+corner_radius_bottom_right = 1
+corner_radius_bottom_left = 1
+
+[sub_resource type="StyleBoxFlat" id="ButtonNormal"]
+bg_color = Color(0.0941176, 0.117647, 0.121569, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.294118, 0.356863, 0.341176, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 8
+content_margin_right = 10
+content_margin_bottom = 8
+
+[sub_resource type="StyleBoxFlat" id="ButtonHover"]
+bg_color = Color(0.117647, 0.145098, 0.14902, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.411765, 0.717647, 0.682353, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 8
+content_margin_right = 10
+content_margin_bottom = 8
+
+[sub_resource type="StyleBoxFlat" id="ButtonPressed"]
+bg_color = Color(0.0470588, 0.0627451, 0.0666667, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.831373, 0.603922, 0.164706, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 8
+content_margin_right = 10
+content_margin_bottom = 8
+
+[sub_resource type="StyleBoxFlat" id="AlarmWarning"]
+bg_color = Color(0.101961, 0.0823529, 0.0392157, 1)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.831373, 0.603922, 0.164706, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 8
+content_margin_top = 6
+content_margin_right = 8
+content_margin_bottom = 6
+
+[sub_resource type="StyleBoxFlat" id="AlarmDanger"]
+bg_color = Color(0.101961, 0.0470588, 0.0431373, 1)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.788235, 0.294118, 0.258824, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 8
+content_margin_top = 6
+content_margin_right = 8
+content_margin_bottom = 6
+
+[sub_resource type="StyleBoxFlat" id="AlarmInfo"]
+bg_color = Color(0.054902, 0.0705882, 0.0745098, 1)
+border_width_left = 3
+border_width_top = 1
+border_width_right = 1
+border_width_bottom = 1
+border_color = Color(0.27451, 0.352941, 0.34902, 1)
+corner_radius_top_left = 2
+corner_radius_top_right = 2
+corner_radius_bottom_right = 2
+corner_radius_bottom_left = 2
+content_margin_left = 8
+content_margin_top = 6
+content_margin_right = 8
+content_margin_bottom = 6
+
+[sub_resource type="StyleBoxFlat" id="ButtonOverride"]
+bg_color = Color(0.12549, 0.0705882, 0.0588235, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.788235, 0.294118, 0.258824, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 8
+content_margin_right = 10
+content_margin_bottom = 8
+
+[sub_resource type="StyleBoxFlat" id="ButtonOverrideHover"]
+bg_color = Color(0.156863, 0.0862745, 0.0705882, 1)
+border_width_left = 2
+border_width_top = 2
+border_width_right = 2
+border_width_bottom = 2
+border_color = Color(0.831373, 0.603922, 0.164706, 1)
+corner_radius_top_left = 3
+corner_radius_top_right = 3
+corner_radius_bottom_right = 3
+corner_radius_bottom_left = 3
+content_margin_left = 10
+content_margin_top = 8
+content_margin_right = 10
+content_margin_bottom = 8
+
+[sub_resource type="StyleBoxFlat" id="LedStable"]
+bg_color = Color(0.411765, 0.717647, 0.682353, 1)
+
+[sub_resource type="StyleBoxFlat" id="LedWarning"]
+bg_color = Color(0.831373, 0.603922, 0.164706, 1)
+
+[sub_resource type="StyleBoxFlat" id="LedDanger"]
+bg_color = Color(0.788235, 0.294118, 0.258824, 1)
+
+[sub_resource type="StyleBoxFlat" id="WarningStrip"]
+bg_color = Color(0.831373, 0.603922, 0.164706, 1)
+
+[node name="ManualOverride" type="Control"]
+layout_mode = 3
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+layout_direction = 2
+
+[node name="Background" type="ColorRect" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+color = Color(0.027451, 0.0392157, 0.0431373, 1)
+
+[node name="OuterMargin" type="MarginContainer" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+layout_direction = 2
+theme_override_constants/margin_left = 20
+theme_override_constants/margin_top = 18
+theme_override_constants/margin_right = 20
+theme_override_constants/margin_bottom = 18
+
+[node name="MainLayout" type="VBoxContainer" parent="OuterMargin"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="Header" type="PanelContainer" parent="OuterMargin/MainLayout"]
+custom_minimum_size = Vector2(0, 94)
+layout_mode = 2
+theme_override_styles/panel = SubResource("PanelOuter")
+
+[node name="HeaderPad" type="MarginContainer" parent="OuterMargin/MainLayout/Header"]
+layout_mode = 2
+theme_override_constants/margin_left = 18
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 18
+theme_override_constants/margin_bottom = 12
+
+[node name="HeaderRow" type="HBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 18
+alignment = 1
+
+[node name="TitleBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 3
+
+[node name="Title" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TitleBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 34
+text = "SHIFT PANIC"
+
+[node name="ConsoleLabel" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TitleBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 12
+text = "MANUAL OVERRIDE CONSOLE"
+
+[node name="TimerBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow"]
+custom_minimum_size = Vector2(190, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 2
+alignment = 1
+
+[node name="TimerValue" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 36
+text = "01:18"
+horizontal_alignment = 1
+
+[node name="TimerLabel" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SHIFT TIME"
+horizontal_alignment = 1
+
+[node name="IntegrityBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow"]
+custom_minimum_size = Vector2(240, 0)
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 5
+
+[node name="IntegrityLine" type="HBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 8
+
+[node name="IntegrityLabel" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityLine"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 12
+text = "INTEGRITY"
+
+[node name="IntegrityValue" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityLine"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 24
+text = "76%"
+horizontal_alignment = 2
+
+[node name="IntegrityBar" type="ProgressBar" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock"]
+custom_minimum_size = Vector2(0, 16)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/background = SubResource("MeterBg")
+theme_override_styles/fill = SubResource("MeterStable")
+max_value = 100.0
+value = 76.0
+fill_mode = 0
+show_percentage = false
+
+[node name="HeaderFooter" type="HBoxContainer" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 8
+
+[node name="LocalControlLed" type="Panel" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/HeaderFooter"]
+custom_minimum_size = Vector2(9, 9)
+layout_mode = 2
+theme_override_styles/panel = SubResource("LedWarning")
+
+[node name="LocalControlLabel" type="Label" parent="OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/HeaderFooter"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 11
+text = "LOCAL CONTROL / NETWORK LOST"
+
+[node name="DividerTop" type="HSeparator" parent="OuterMargin/MainLayout"]
+layout_mode = 2
+
+[node name="ContentArea" type="HBoxContainer" parent="OuterMargin/MainLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+layout_direction = 2
+theme_override_constants/separation = 12
+
+[node name="SystemsSection" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelOuter")
+
+[node name="SystemsPad" type="MarginContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 16
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 16
+theme_override_constants/margin_bottom = 14
+
+[node name="SystemsLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 12
+
+[node name="SystemsHeader" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout"]
+layout_mode = 2
+layout_direction = 2
+
+[node name="SystemsTitle" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/SystemsHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 15
+text = "SYSTEM READOUTS"
+
+[node name="SystemsMode" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/SystemsHeader"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "LOCAL INSTRUMENTATION"
+horizontal_alignment = 2
+
+[node name="TemperaturePanel" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelRaised")
+
+[node name="TemperaturePad" type="MarginContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="TemperatureLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 7
+
+[node name="TemperatureTop" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="TemperatureId" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureTop"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SYS-T01"
+
+[node name="TemperatureLed" type="Panel" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureTop"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+theme_override_styles/panel = SubResource("LedWarning")
+
+[node name="TemperatureName" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureTop"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 18
+text = "TEMPERATURE"
+
+[node name="TemperatureReadout" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 12
+
+[node name="TemperatureMeterBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 4
+
+[node name="TemperatureMeter" type="ProgressBar" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout/TemperatureMeterBlock"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/background = SubResource("MeterBg")
+theme_override_styles/fill = SubResource("MeterWarning")
+max_value = 100.0
+value = 72.0
+fill_mode = 0
+show_percentage = false
+
+[node name="TemperatureStatusBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+layout_direction = 2
+
+[node name="TemperatureState" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout/TemperatureStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 12
+text = "WARNING"
+horizontal_alignment = 2
+
+[node name="TemperatureTrend" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout/TemperatureStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 24
+text = "↑"
+horizontal_alignment = 2
+
+[node name="TemperatureValue" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/TemperaturePanel/TemperaturePad/TemperatureLayout/TemperatureReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 42
+text = "72"
+horizontal_alignment = 2
+
+[node name="PressurePanel" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelRaised")
+
+[node name="PressurePad" type="MarginContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="PressureLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 7
+
+[node name="PressureTop" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="PressureId" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureTop"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SYS-P02"
+
+[node name="PressureLed" type="Panel" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureTop"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+theme_override_styles/panel = SubResource("LedStable")
+
+[node name="PressureName" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureTop"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 18
+text = "PRESSURE"
+
+[node name="PressureReadout" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 12
+
+[node name="PressureMeterBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 4
+
+[node name="PressureMeter" type="ProgressBar" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout/PressureMeterBlock"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/background = SubResource("MeterBg")
+theme_override_styles/fill = SubResource("MeterStable")
+max_value = 100.0
+value = 41.0
+fill_mode = 0
+show_percentage = false
+
+[node name="PressureStatusBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+layout_direction = 2
+
+[node name="PressureState" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout/PressureStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.411765, 0.717647, 0.682353, 1)
+theme_override_font_sizes/font_size = 12
+text = "STABLE"
+horizontal_alignment = 2
+
+[node name="PressureTrend" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout/PressureStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.411765, 0.717647, 0.682353, 1)
+theme_override_font_sizes/font_size = 24
+text = "→"
+horizontal_alignment = 2
+
+[node name="PressureValue" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PressurePanel/PressurePad/PressureLayout/PressureReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.411765, 0.717647, 0.682353, 1)
+theme_override_font_sizes/font_size = 42
+text = "41"
+horizontal_alignment = 2
+
+[node name="PowerPanel" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelRaised")
+
+[node name="PowerPad" type="MarginContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 10
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 10
+
+[node name="PowerLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 7
+
+[node name="PowerTop" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="PowerId" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerTop"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SYS-E03"
+
+[node name="PowerLed" type="Panel" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerTop"]
+custom_minimum_size = Vector2(10, 10)
+layout_mode = 2
+theme_override_styles/panel = SubResource("LedDanger")
+
+[node name="PowerName" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerTop"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 18
+text = "POWER LOAD"
+
+[node name="PowerReadout" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 12
+
+[node name="PowerMeterBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+theme_override_constants/separation = 4
+
+[node name="PowerMeter" type="ProgressBar" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout/PowerMeterBlock"]
+custom_minimum_size = Vector2(0, 18)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/background = SubResource("MeterBg")
+theme_override_styles/fill = SubResource("MeterDanger")
+max_value = 100.0
+value = 83.0
+fill_mode = 0
+show_percentage = false
+
+[node name="PowerStatusBlock" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+layout_direction = 2
+
+[node name="PowerState" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout/PowerStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
+theme_override_font_sizes/font_size = 12
+text = "DANGER"
+horizontal_alignment = 2
+
+[node name="PowerTrend" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout/PowerStatusBlock"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
+theme_override_font_sizes/font_size = 24
+text = "↑↑"
+horizontal_alignment = 2
+
+[node name="PowerValue" type="Label" parent="OuterMargin/MainLayout/ContentArea/SystemsSection/SystemsPad/SystemsLayout/PowerPanel/PowerPad/PowerLayout/PowerReadout"]
+custom_minimum_size = Vector2(80, 0)
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
+theme_override_font_sizes/font_size = 42
+text = "83"
+horizontal_alignment = 2
+
+[node name="AlarmSection" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea"]
+custom_minimum_size = Vector2(350, 0)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelOuter")
+
+[node name="AlarmPad" type="MarginContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 14
+theme_override_constants/margin_top = 14
+theme_override_constants/margin_right = 14
+theme_override_constants/margin_bottom = 14
+
+[node name="AlarmLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 9
+
+[node name="AlarmHeader" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+layout_direction = 2
+
+[node name="AlarmTitle" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 16
+text = "ALARM FEED"
+
+[node name="AlarmCount" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmHeader"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 12
+text = "3 ACTIVE"
+horizontal_alignment = 2
+
+[node name="AlarmWarningStrip" type="Panel" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+custom_minimum_size = Vector2(0, 4)
+layout_mode = 2
+theme_override_styles/panel = SubResource("WarningStrip")
+
+[node name="AlarmEntry1" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("AlarmWarning")
+
+[node name="AlarmEntry1Row" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="Alarm1Text" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+
+[node name="Alarm1Name" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row/Alarm1Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 14
+text = "PRESSURE RISING"
+
+[node name="Alarm1Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row/Alarm1Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SECTOR B"
+
+[node name="Alarm1Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 12
+text = "00:12"
+
+[node name="AlarmEntry2" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("AlarmWarning")
+
+[node name="AlarmEntry2Row" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="Alarm2Text" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+
+[node name="Alarm2Name" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row/Alarm2Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 14
+text = "COOLING UNSTABLE"
+
+[node name="Alarm2Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row/Alarm2Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "LOOP 01"
+
+[node name="Alarm2Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 12
+text = "00:18"
+
+[node name="AlarmEntry3" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("AlarmDanger")
+
+[node name="AlarmEntry3Row" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="Alarm3Text" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+
+[node name="Alarm3Name" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row/Alarm3Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 14
+text = "POWER SURGE IN 3..."
+
+[node name="Alarm3Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row/Alarm3Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "MAIN BUS"
+
+[node name="Alarm3Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
+theme_override_font_sizes/font_size = 12
+text = "00:24"
+
+[node name="AlarmEntry4" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("AlarmInfo")
+
+[node name="AlarmEntry4Row" type="HBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 10
+
+[node name="Alarm4Text" type="VBoxContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row"]
+layout_mode = 2
+size_flags_horizontal = 3
+layout_direction = 2
+
+[node name="Alarm4Name" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row/Alarm4Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.737255, 0.788235, 0.776471, 1)
+theme_override_font_sizes/font_size = 14
+text = "SENSOR RESPONSE DELAY"
+
+[node name="Alarm4Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row/Alarm4Text"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 11
+text = "SYS-T01"
+
+[node name="Alarm4Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
+theme_override_font_sizes/font_size = 12
+text = "00:31"
+
+[node name="AlarmSpacer" type="Control" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+
+[node name="AlarmFooter" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
+theme_override_font_sizes/font_size = 12
+text = "AUTOMATIC RESPONSE: OFFLINE"
+horizontal_alignment = 1
+
+[node name="DividerBottom" type="HSeparator" parent="OuterMargin/MainLayout"]
+layout_mode = 2
+
+[node name="ActionBar" type="PanelContainer" parent="OuterMargin/MainLayout"]
+custom_minimum_size = Vector2(0, 120)
+layout_mode = 2
+layout_direction = 2
+theme_override_styles/panel = SubResource("PanelOuter")
+
+[node name="ActionPad" type="MarginContainer" parent="OuterMargin/MainLayout/ActionBar"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/margin_left = 12
+theme_override_constants/margin_top = 12
+theme_override_constants/margin_right = 12
+theme_override_constants/margin_bottom = 12
+
+[node name="ActionLayout" type="VBoxContainer" parent="OuterMargin/MainLayout/ActionBar/ActionPad"]
+layout_mode = 2
+layout_direction = 2
+theme_override_constants/separation = 8
+
+[node name="ActionHeader" type="HBoxContainer" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout"]
+layout_mode = 2
+layout_direction = 2
+
+[node name="ActionTitle" type="Label" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ActionHeader"]
+layout_mode = 2
+size_flags_horizontal = 3
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+text = "INTERVENTION CONTROLS"
+
+[node name="OverrideRemaining" type="Label" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ActionHeader"]
+layout_mode = 2
+text_direction = 1
+theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
+theme_override_font_sizes/font_size = 12
+text = "MANUAL OVERRIDE: 2 REMAINING"
+horizontal_alignment = 2
+
+[node name="ButtonRow" type="HBoxContainer" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout"]
+layout_mode = 2
+size_flags_vertical = 3
+layout_direction = 2
+theme_override_constants/separation = 8
+
+[node name="CoolButton" type="Button" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_colors/font_hover_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonNormal")
+text = "[1] EMERGENCY COOL\nTEMP ↓ / POWER ↑"
+
+[node name="VentButton" type="Button" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_colors/font_hover_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonNormal")
+text = "[2] PRESSURE VENT\nPRESSURE ↓ / HEAT ↑"
+
+[node name="RerouteButton" type="Button" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_colors/font_hover_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonNormal")
+text = "[3] REROUTE POWER\nLOAD ↓ / COOLING ↓"
+
+[node name="ResetButton" type="Button" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_colors/font_hover_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonNormal")
+theme_override_styles/hover = SubResource("ButtonHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonNormal")
+text = "[4] SYSTEM RESET\nCLEARS CONTROL FAULTS"
+
+[node name="OverrideButton" type="Button" parent="OuterMargin/MainLayout/ActionBar/ActionPad/ActionLayout/ButtonRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+focus_mode = 0
+text_direction = 1
+theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_colors/font_hover_color = Color(0.898039, 0.909804, 0.894118, 1)
+theme_override_font_sizes/font_size = 13
+theme_override_styles/normal = SubResource("ButtonOverride")
+theme_override_styles/hover = SubResource("ButtonOverrideHover")
+theme_override_styles/pressed = SubResource("ButtonPressed")
+theme_override_styles/focus = SubResource("ButtonOverride")
+text = "[5] MANUAL OVERRIDE\nCRITICAL RECOVERY"
+
+[node name="DecorativeOverlay" type="Control" parent="."]
+layout_mode = 1
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
+
+[node name="TopLeftBracket" type="ColorRect" parent="DecorativeOverlay"]
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 82.0
+offset_bottom = 13.0
+color = Color(0.164706, 0.223529, 0.227451, 1)
+
+[node name="TopRightBracket" type="ColorRect" parent="DecorativeOverlay"]
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -82.0
+offset_top = 10.0
+offset_right = -10.0
+offset_bottom = 13.0
+grow_horizontal = 0
+color = Color(0.164706, 0.223529, 0.227451, 1)

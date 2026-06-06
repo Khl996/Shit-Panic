@@ -75,6 +75,9 @@ Engine requirement: Godot 4 Standard.
 - Proximity prompts (E key) for the desk console, tool rack, radio device, and manager door.
 - Action console panel appears automatically when the player stands near the desk and hides when they walk away.
 - Tools become physical: pick up tape or bucket at the rack with E, then press F near the leak to apply.
+- Always-visible shift card explains the current incident, next steps, and why desk-number actions are general building decisions.
+- Room zones visually separate the maintenance desk, tool rack, and server room so physical incidents have a readable place.
+- First leak incident now supports an explicit safe-vs-fast choice: bucket with E or duct tape with Q at the tool rack.
 - HUD shrinks to the essentials: integrity, shift clock, carried tool, alarm feed strip, and a context-sensitive interaction prompt.
 - Manager door tease with rotating sleep-related lines on knock attempts.
 - All existing simulation systems (facility state, event director, intervention controller, alarm feed, audio) are reused unchanged by the new scene.

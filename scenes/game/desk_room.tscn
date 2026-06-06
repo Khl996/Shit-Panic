@@ -1,4 +1,4 @@
-[gd_scene load_steps=12 format=3]
+[gd_scene load_steps=17 format=3]
 
 [ext_resource type="Script" path="res://scripts/desk_room_controller.gd" id="1_controller"]
 [ext_resource type="Script" path="res://scripts/room_visuals.gd" id="2_room"]
@@ -9,6 +9,7 @@
 [ext_resource type="Script" path="res://scripts/wall_clock.gd" id="7_clock"]
 [ext_resource type="Script" path="res://scripts/wall_meter.gd" id="8_meter"]
 [ext_resource type="Script" path="res://scripts/manager_door_object.gd" id="9_door"]
+[ext_resource type="Script" path="res://scripts/server_leak_object.gd" id="10_server"]
 
 [sub_resource type="RectangleShape2D" id="WallTopShape"]
 size = Vector2(1280, 30)
@@ -64,6 +65,10 @@ shape = SubResource("DeskShape")
 [node name="ToolRack" type="Node2D" parent="Furniture"]
 position = Vector2(140, 360)
 script = ExtResource("5_rack")
+
+[node name="ServerLeak" type="Node2D" parent="Furniture"]
+position = Vector2(1065, 370)
+script = ExtResource("10_server")
 
 [node name="Radio" type="Node2D" parent="Furniture"]
 position = Vector2(550, 510)

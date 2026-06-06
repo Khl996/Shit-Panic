@@ -307,13 +307,13 @@ func _build_result_overlay() -> void:
 	panel_margin.add_child(layout)
 
 	_result_title_label = Label.new()
-	_result_title_label.text_direction = TextServer.DIRECTION_LTR
+	_result_title_label.text_direction = Control.TEXT_DIRECTION_LTR
 	_result_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_result_title_label.add_theme_font_size_override("font_size", 34)
 	layout.add_child(_result_title_label)
 
 	_result_body_label = Label.new()
-	_result_body_label.text_direction = TextServer.DIRECTION_LTR
+	_result_body_label.text_direction = Control.TEXT_DIRECTION_LTR
 	_result_body_label.add_theme_font_size_override("font_size", 16)
 	_result_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_result_body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
@@ -321,7 +321,7 @@ func _build_result_overlay() -> void:
 
 	_retry_button = Button.new()
 	_retry_button.text = "RETRY SHIFT"
-	_retry_button.text_direction = TextServer.DIRECTION_LTR
+	_retry_button.text_direction = Control.TEXT_DIRECTION_LTR
 	_retry_button.custom_minimum_size = Vector2(0.0, 54.0)
 	_retry_button.add_theme_font_size_override("font_size", 18)
 	_retry_button.pressed.connect(reset_round)

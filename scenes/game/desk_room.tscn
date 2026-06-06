@@ -1,0 +1,99 @@
+[gd_scene load_steps=12 format=3]
+
+[ext_resource type="Script" path="res://scripts/desk_room_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/room_visuals.gd" id="2_room"]
+[ext_resource type="Script" path="res://scripts/player_character.gd" id="3_player"]
+[ext_resource type="Script" path="res://scripts/desk_console_object.gd" id="4_desk"]
+[ext_resource type="Script" path="res://scripts/tool_rack_object.gd" id="5_rack"]
+[ext_resource type="Script" path="res://scripts/radio_device.gd" id="6_radio"]
+[ext_resource type="Script" path="res://scripts/wall_clock.gd" id="7_clock"]
+[ext_resource type="Script" path="res://scripts/wall_meter.gd" id="8_meter"]
+[ext_resource type="Script" path="res://scripts/manager_door_object.gd" id="9_door"]
+
+[sub_resource type="RectangleShape2D" id="WallTopShape"]
+size = Vector2(1280, 30)
+
+[sub_resource type="RectangleShape2D" id="WallBottomShape"]
+size = Vector2(1280, 30)
+
+[sub_resource type="RectangleShape2D" id="WallLeftShape"]
+size = Vector2(30, 720)
+
+[sub_resource type="RectangleShape2D" id="WallRightShape"]
+size = Vector2(30, 720)
+
+[sub_resource type="RectangleShape2D" id="DeskShape"]
+size = Vector2(360, 130)
+
+[sub_resource type="CircleShape2D" id="PlayerShape"]
+radius = 16.0
+
+[node name="DeskRoom" type="Node2D"]
+script = ExtResource("1_controller")
+
+[node name="Background" type="Node2D" parent="."]
+script = ExtResource("2_room")
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="WallTopCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, 15)
+shape = SubResource("WallTopShape")
+
+[node name="WallBottomCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, 705)
+shape = SubResource("WallBottomShape")
+
+[node name="WallLeftCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(15, 360)
+shape = SubResource("WallLeftShape")
+
+[node name="WallRightCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(1265, 360)
+shape = SubResource("WallRightShape")
+
+[node name="Furniture" type="Node2D" parent="."]
+
+[node name="MaintenanceConsole" type="StaticBody2D" parent="Furniture"]
+position = Vector2(640, 470)
+script = ExtResource("4_desk")
+
+[node name="DeskCollider" type="CollisionShape2D" parent="Furniture/MaintenanceConsole"]
+shape = SubResource("DeskShape")
+
+[node name="ToolRack" type="Node2D" parent="Furniture"]
+position = Vector2(140, 360)
+script = ExtResource("5_rack")
+
+[node name="Radio" type="Node2D" parent="Furniture"]
+position = Vector2(550, 510)
+script = ExtResource("6_radio")
+
+[node name="WallClock" type="Node2D" parent="Furniture"]
+position = Vector2(940, 110)
+script = ExtResource("7_clock")
+
+[node name="TempMeter" type="Node2D" parent="Furniture"]
+position = Vector2(200, 110)
+script = ExtResource("8_meter")
+
+[node name="PressureMeter" type="Node2D" parent="Furniture"]
+position = Vector2(340, 110)
+script = ExtResource("8_meter")
+
+[node name="PowerMeter" type="Node2D" parent="Furniture"]
+position = Vector2(480, 110)
+script = ExtResource("8_meter")
+
+[node name="ManagerDoor" type="Node2D" parent="Furniture"]
+position = Vector2(1210, 300)
+script = ExtResource("9_door")
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(640, 600)
+script = ExtResource("3_player")
+
+[node name="PlayerCollider" type="CollisionShape2D" parent="Player"]
+shape = SubResource("PlayerShape")
+
+[node name="HUD" type="CanvasLayer" parent="."]

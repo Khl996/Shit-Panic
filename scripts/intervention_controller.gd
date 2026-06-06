@@ -2,6 +2,8 @@ class_name InterventionController
 extends RefCounted
 
 signal state_changed
+signal action_accepted(action: int)
+signal action_rejected(action: int, reason: String)
 
 enum Action {
 	COOL,
@@ -17,10 +19,10 @@ const GLOBAL_LOCK_SECONDS: float = 2.5
 const MANUAL_OVERRIDE_MAX_USES: int = 2
 
 const COOLDOWN_SECONDS: Array[float] = [
-	6.0,
-	7.0,
-	8.0,
-	10.0,
+	5.5,
+	6.5,
+	7.5,
+	9.0,
 	12.0,
 ]
 
@@ -121,30 +123,35 @@ func try_action(action: int) -> bool:
 	if inputs_expired:
 		_set_feedback(EXPIRED_FEEDBACK)
 		_update_button_states()
+		action_rejected.emit(action, "expired")
 		state_changed.emit()
 		return true
 
 	if global_lock_remaining > 0.0:
 		_set_feedback("CONTROLS LOCKED")
 		_update_button_states()
+		action_rejected.emit(action, "locked")
 		state_changed.emit()
 		return true
 
 	if action == Action.OVERRIDE and manual_override_uses <= 0:
 		_set_feedback("MANUAL OVERRIDE DEPLETED")
 		_update_button_states()
+		action_rejected.emit(action, "depleted")
 		state_changed.emit()
 		return true
 
 	if is_action_jammed(action):
 		_set_feedback("CONTROL JAMMED")
 		_update_button_states()
+		action_rejected.emit(action, "jammed")
 		state_changed.emit()
 		return true
 
 	if cooldowns[action] > 0.0:
 		_set_feedback("ACTION ON COOLDOWN")
 		_update_button_states()
+		action_rejected.emit(action, "cooldown")
 		state_changed.emit()
 		return true
 
@@ -165,6 +172,7 @@ func try_action(action: int) -> bool:
 			if not _has_any_resettable_fault():
 				_set_feedback("NO CONTROL FAULT TO RESET")
 				_update_button_states()
+				action_rejected.emit(action, "no_fault")
 				state_changed.emit()
 				return true
 			facility_state.perform_system_reset()
@@ -180,6 +188,7 @@ func try_action(action: int) -> bool:
 			_set_feedback("MANUAL OVERRIDE APPLIED TO %s" % target_name)
 
 	_update_button_states()
+	action_accepted.emit(action)
 	state_changed.emit()
 	return true
 

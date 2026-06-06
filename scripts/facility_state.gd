@@ -3,7 +3,8 @@ extends RefCounted
 
 enum RoundState {
 	RUNNING,
-	TIME_EXPIRED,
+	SURVIVED,
+	LOST,
 }
 
 enum SystemStatus {
@@ -39,21 +40,21 @@ const TREND_TOLERANCE: float = 0.28
 const STRONG_TREND_TOLERANCE: float = 1.15
 const TREND_SAMPLE_INTERVAL: float = 0.25
 
-const BASE_CRITICAL_DRAIN_PER_SECOND: float = 0.75
-const EXCESS_CRITICAL_DRAIN_PER_SECOND: float = 0.08
-const MULTIPLE_CRITICAL_DRAIN_BONUS: float = 0.45
+const BASE_CRITICAL_DRAIN_PER_SECOND: float = 0.62
+const EXCESS_CRITICAL_DRAIN_PER_SECOND: float = 0.065
+const MULTIPLE_CRITICAL_DRAIN_BONUS: float = 0.35
 
-const EMERGENCY_COOL_TEMPERATURE_DELTA: float = -12.0
+const EMERGENCY_COOL_TEMPERATURE_DELTA: float = -14.0
 const EMERGENCY_COOL_POWER_DELTA: float = 6.0
-const PRESSURE_VENT_PRESSURE_DELTA: float = -16.0
+const PRESSURE_VENT_PRESSURE_DELTA: float = -18.0
 const PRESSURE_VENT_TEMPERATURE_DELTA: float = 5.0
-const POWER_REROUTE_POWER_DELTA: float = -14.0
+const POWER_REROUTE_POWER_DELTA: float = -16.0
 const REROUTE_COOLING_PENALTY_DURATION: float = 6.0
 const REROUTE_TEMPERATURE_PENALTY_PER_SECOND: float = 0.9
 const SYSTEM_RESET_POWER_DELTA: float = 4.0
-const MANUAL_OVERRIDE_PRIMARY_DELTA: float = -22.0
+const MANUAL_OVERRIDE_PRIMARY_DELTA: float = -24.0
 const MANUAL_OVERRIDE_SIDE_DELTA: float = 5.0
-const MANUAL_OVERRIDE_INTEGRITY_RESTORE: float = 4.0
+const MANUAL_OVERRIDE_INTEGRITY_RESTORE: float = 5.0
 const COOLING_FAILURE_TEMPERATURE_DELTA: float = 5.0
 const COOLING_FAILURE_TEMPERATURE_PER_SECOND: float = 1.2
 const PRESSURE_SPIKE_PRESSURE_DELTA: float = 14.0
@@ -140,8 +141,10 @@ func advance(delta_seconds: float) -> void:
 	_update_integrity(safe_delta)
 	_update_panic_level()
 
-	if is_zero_approx(remaining_time):
-		round_state = RoundState.TIME_EXPIRED
+	if integrity <= MIN_VALUE:
+		round_state = RoundState.LOST
+	elif is_zero_approx(remaining_time):
+		round_state = RoundState.SURVIVED
 
 
 func get_status(value: float) -> int:
@@ -172,6 +175,33 @@ func get_critical_system_count() -> int:
 		if value >= CATASTROPHIC_LIMIT:
 			critical_count += 1
 	return critical_count
+
+
+func is_finished() -> bool:
+	return round_state == RoundState.SURVIVED or round_state == RoundState.LOST
+
+
+func force_survival() -> void:
+	if round_state != RoundState.RUNNING:
+		return
+	elapsed_time = _round_duration_seconds
+	remaining_time = 0.0
+	round_state = RoundState.SURVIVED if integrity > MIN_VALUE else RoundState.LOST
+
+
+func force_loss() -> void:
+	if round_state != RoundState.RUNNING:
+		return
+	integrity = MIN_VALUE
+	round_state = RoundState.LOST
+
+
+func get_most_stressed_system_name() -> String:
+	if temperature >= pressure and temperature >= power_load:
+		return "TEMPERATURE"
+	if pressure >= power_load:
+		return "PRESSURE"
+	return "POWER LOAD"
 
 
 func has_active_temporary_modifier() -> bool:

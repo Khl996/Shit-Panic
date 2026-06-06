@@ -3,18 +3,30 @@ extends Control
 @export var round_duration_seconds: float = 90.0
 @export var use_fixed_seed: bool = true
 @export var fixed_seed: int = 1337
+@export var development_controls_enabled: bool = false
+@export var alternate_test_seed: int = 4242
+@export var short_round_duration_seconds: float = 30.0
 
 var facility_state: FacilityState
 var intervention_controller: InterventionController
 var event_director: EventDirector
 var alarm_feed_controller: AlarmFeedController
+var audio_feedback_controller: AudioFeedbackController
+var panic_feedback_controller: PanicFeedbackController
 var _controls_expired_notified: bool = false
+var _outcome_reported: bool = false
+var _total_interventions_used: int = 0
+var _manual_overrides_used: int = 0
+var _events_encountered: int = 0
+var _highest_panic_level: float = 0.0
+var _previous_integrity: float = 100.0
 
 const STABLE_COLOR: Color = Color(0.411765, 0.717647, 0.682353, 1)
 const WARNING_COLOR: Color = Color(0.831373, 0.603922, 0.164706, 1)
 const DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1)
 const FAULT_COLOR: Color = Color(0.498039, 0.568627, 0.552941, 1)
 
+@onready var console_root: Control = get_node("OuterMargin")
 @onready var timer_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock/TimerValue")
 @onready var integrity_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityLine/IntegrityValue")
 @onready var integrity_bar: ProgressBar = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityBar")
@@ -74,6 +86,11 @@ const FAULT_COLOR: Color = Color(0.498039, 0.568627, 0.552941, 1)
 var _bar_styles: Dictionary = {}
 var _led_styles: Dictionary = {}
 var _fault_bar_style: StyleBoxFlat
+var _result_overlay: Control
+var _result_panel: PanelContainer
+var _result_title_label: Label
+var _result_body_label: Label
+var _retry_button: Button
 
 
 func _ready() -> void:
@@ -83,22 +100,43 @@ func _ready() -> void:
 	_configure_interventions()
 	_configure_events()
 	_configure_alarm_feed()
+	_configure_feedback()
+	_build_result_overlay()
+	_reset_round_stats()
 	_update_ui()
 
 
 func _process(delta: float) -> void:
 	if facility_state.round_state == FacilityState.RoundState.RUNNING:
+		var integrity_before: float = facility_state.integrity
 		facility_state.advance(delta)
-		if facility_state.round_state == FacilityState.RoundState.TIME_EXPIRED:
-			_notify_controls_expired()
+		var integrity_draining: bool = facility_state.integrity < integrity_before - 0.01
+		_highest_panic_level = maxf(_highest_panic_level, facility_state.panic_level)
+		if facility_state.is_finished():
+			_finish_round()
 		else:
 			intervention_controller.advance(delta)
 			event_director.advance(delta, facility_state.elapsed_time)
 			alarm_feed_controller.advance(delta)
+		panic_feedback_controller.advance(
+			delta,
+			facility_state.panic_level,
+			integrity_draining,
+			facility_state.get_critical_system_count()
+		)
 		_update_ui()
+	_previous_integrity = facility_state.integrity
 
 
 func _unhandled_input(event: InputEvent) -> void:
+	if _handle_development_input(event):
+		get_viewport().set_input_as_handled()
+		return
+	if _handle_result_input(event):
+		get_viewport().set_input_as_handled()
+		return
+	if facility_state.is_finished():
+		return
 	if intervention_controller.handle_key_input(event):
 		get_viewport().set_input_as_handled()
 
@@ -106,14 +144,20 @@ func _unhandled_input(event: InputEvent) -> void:
 func reset_round() -> void:
 	facility_state.reset(round_duration_seconds)
 	_controls_expired_notified = false
+	_outcome_reported = false
+	_reset_round_stats()
 	intervention_controller.reset()
 	event_director.reset()
 	alarm_feed_controller.reset()
+	audio_feedback_controller.reset()
+	panic_feedback_controller.reset()
+	_result_overlay.visible = false
 	_update_ui()
 
 
 func _validate_required_nodes() -> void:
 	var required_nodes: Array[Node] = [
+		console_root,
 		timer_value_label,
 		integrity_value_label,
 		integrity_bar,
@@ -165,6 +209,8 @@ func _configure_interventions() -> void:
 		action_feedback_label
 	)
 	intervention_controller.state_changed.connect(_update_ui)
+	intervention_controller.action_accepted.connect(_on_action_accepted)
+	intervention_controller.action_rejected.connect(_on_action_rejected)
 
 
 func _configure_events() -> void:
@@ -189,11 +235,221 @@ func _configure_alarm_feed() -> void:
 	)
 
 
+func _configure_feedback() -> void:
+	audio_feedback_controller = AudioFeedbackController.new()
+	audio_feedback_controller.configure(self)
+	panic_feedback_controller = PanicFeedbackController.new()
+	panic_feedback_controller.configure(self, console_root)
+
+
 func _notify_controls_expired() -> void:
 	if _controls_expired_notified:
 		return
 	_controls_expired_notified = true
 	intervention_controller.expire_controls()
+
+
+func _finish_round() -> void:
+	if _outcome_reported:
+		return
+	_outcome_reported = true
+	_notify_controls_expired()
+	if facility_state.round_state == FacilityState.RoundState.SURVIVED:
+		audio_feedback_controller.play(AudioFeedbackController.Cue.WIN)
+	else:
+		audio_feedback_controller.play(AudioFeedbackController.Cue.LOSS)
+	_show_result_overlay()
+
+
+func _reset_round_stats() -> void:
+	_total_interventions_used = 0
+	_manual_overrides_used = 0
+	_events_encountered = 0
+	_highest_panic_level = 0.0
+	_previous_integrity = FacilityState.INITIAL_INTEGRITY
+
+
+func _build_result_overlay() -> void:
+	_result_overlay = Control.new()
+	_result_overlay.name = "ResultOverlay"
+	_result_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_result_overlay.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	_result_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	_result_overlay.visible = false
+	add_child(_result_overlay)
+
+	var dim: ColorRect = ColorRect.new()
+	dim.name = "ResultDim"
+	dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	dim.color = Color(0.0, 0.0, 0.0, 0.72)
+	_result_overlay.add_child(dim)
+
+	var center: CenterContainer = CenterContainer.new()
+	center.name = "ResultCenter"
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_result_overlay.add_child(center)
+
+	_result_panel = PanelContainer.new()
+	_result_panel.name = "ResultPanel"
+	_result_panel.custom_minimum_size = Vector2(560.0, 430.0)
+	center.add_child(_result_panel)
+
+	var panel_margin: MarginContainer = MarginContainer.new()
+	panel_margin.add_theme_constant_override("margin_left", 26)
+	panel_margin.add_theme_constant_override("margin_top", 22)
+	panel_margin.add_theme_constant_override("margin_right", 26)
+	panel_margin.add_theme_constant_override("margin_bottom", 22)
+	_result_panel.add_child(panel_margin)
+
+	var layout: VBoxContainer = VBoxContainer.new()
+	layout.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	layout.add_theme_constant_override("separation", 14)
+	panel_margin.add_child(layout)
+
+	_result_title_label = Label.new()
+	_result_title_label.text_direction = TextServer.DIRECTION_LTR
+	_result_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_result_title_label.add_theme_font_size_override("font_size", 34)
+	layout.add_child(_result_title_label)
+
+	_result_body_label = Label.new()
+	_result_body_label.text_direction = TextServer.DIRECTION_LTR
+	_result_body_label.add_theme_font_size_override("font_size", 16)
+	_result_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_result_body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
+	layout.add_child(_result_body_label)
+
+	_retry_button = Button.new()
+	_retry_button.text = "RETRY SHIFT"
+	_retry_button.text_direction = TextServer.DIRECTION_LTR
+	_retry_button.custom_minimum_size = Vector2(0.0, 54.0)
+	_retry_button.add_theme_font_size_override("font_size", 18)
+	_retry_button.pressed.connect(reset_round)
+	layout.add_child(_retry_button)
+
+
+func _show_result_overlay() -> void:
+	var survived: bool = facility_state.round_state == FacilityState.RoundState.SURVIVED
+	var title: String = "SHIFT SURVIVED" if survived else "FACILITY LOST"
+	var accent_color: Color = STABLE_COLOR if survived else DANGER_COLOR
+	_result_title_label.text = title
+	_result_title_label.add_theme_color_override("font_color", accent_color)
+	_result_panel.add_theme_stylebox_override("panel", _make_result_panel_style(accent_color))
+	_result_body_label.text = _build_result_body(survived)
+	_result_overlay.visible = true
+	_retry_button.grab_focus()
+
+
+func _build_result_body(survived: bool) -> String:
+	var cause_label: String = "MAIN STRESS"
+	if not survived:
+		cause_label = "FAILURE CAUSE"
+
+	return (
+		"FINAL INTEGRITY: %d%%\n" % int(roundf(facility_state.integrity))
+		+ "TIME SURVIVED: %s\n" % _format_time(facility_state.elapsed_time)
+		+ "%s: %s\n" % [cause_label, facility_state.get_most_stressed_system_name()]
+		+ "INTERVENTIONS USED: %d\n" % _total_interventions_used
+		+ "MANUAL OVERRIDES USED: %d\n" % _manual_overrides_used
+		+ "EVENTS ENCOUNTERED: %d\n" % _events_encountered
+		+ "HIGHEST PANIC: %d%%\n" % int(roundf(_highest_panic_level * 100.0))
+		+ "PERFORMANCE GRADE: %s" % _performance_grade(survived)
+	)
+
+
+func _performance_grade(survived: bool) -> String:
+	if not survived:
+		return "F"
+	if facility_state.integrity >= 70.0 and _highest_panic_level < 0.75:
+		return "A"
+	if facility_state.integrity >= 50.0:
+		return "B"
+	if facility_state.integrity >= 25.0:
+		return "C"
+	return "D"
+
+
+func _make_result_panel_style(accent_color: Color) -> StyleBoxFlat:
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.027451, 0.039216, 0.043137, 0.98)
+	style.border_color = accent_color
+	style.border_width_left = 3
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 3
+	style.corner_radius_top_left = 2
+	style.corner_radius_top_right = 2
+	style.corner_radius_bottom_right = 2
+	style.corner_radius_bottom_left = 2
+	return style
+
+
+func _handle_result_input(event: InputEvent) -> bool:
+	if not _outcome_reported:
+		return false
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo:
+		return false
+	if key_event.physical_keycode == KEY_R or key_event.physical_keycode == KEY_ENTER:
+		reset_round()
+		return true
+	return false
+
+
+func _handle_development_input(event: InputEvent) -> bool:
+	if not development_controls_enabled:
+		return false
+	var key_event: InputEventKey = event as InputEventKey
+	if key_event == null or not key_event.pressed or key_event.echo or not key_event.ctrl_pressed:
+		return false
+
+	match key_event.physical_keycode:
+		KEY_R:
+			reset_round()
+			return true
+		KEY_W:
+			facility_state.force_survival()
+			_finish_round()
+			_update_ui()
+			return true
+		KEY_L:
+			facility_state.force_loss()
+			_finish_round()
+			_update_ui()
+			return true
+		KEY_D:
+			round_duration_seconds = short_round_duration_seconds
+			reset_round()
+			return true
+		KEY_A:
+			use_fixed_seed = true
+			fixed_seed = alternate_test_seed
+			event_director.set_seed_settings(use_fixed_seed, fixed_seed)
+			reset_round()
+			return true
+		KEY_1:
+			return _force_event_for_development(EventDirector.EventType.COOLING_FAILURE)
+		KEY_2:
+			return _force_event_for_development(EventDirector.EventType.PRESSURE_SPIKE)
+		KEY_3:
+			return _force_event_for_development(EventDirector.EventType.POWER_SURGE)
+		KEY_4:
+			return _force_event_for_development(EventDirector.EventType.SENSOR_GLITCH)
+		KEY_5:
+			return _force_event_for_development(EventDirector.EventType.JAMMED_CONTROL)
+	return false
+
+
+func _force_event_for_development(event_type: int) -> bool:
+	if facility_state.round_state != FacilityState.RoundState.RUNNING:
+		return true
+	var raised: bool = event_director.force_event(event_type, facility_state.elapsed_time)
+	if raised:
+		_update_ui()
+	else:
+		action_feedback_label.text = "DEV EVENT BLOCKED"
+		audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
+	return true
 
 
 func _update_ui() -> void:
@@ -330,8 +586,26 @@ func _make_led_style(color: Color) -> StyleBoxFlat:
 	return style
 
 
+func _on_action_accepted(action: int) -> void:
+	_total_interventions_used += 1
+	if action == InterventionController.Action.OVERRIDE:
+		_manual_overrides_used += 1
+	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
+
+
+func _on_action_rejected(_action: int, _reason: String) -> void:
+	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
+
+
 func _on_event_raised(event_data: Dictionary) -> void:
+	_events_encountered += 1
 	alarm_feed_controller.raise_alarm(event_data)
+	audio_feedback_controller.play(AudioFeedbackController.Cue.EVENT_RAISED)
+	if str(event_data["severity"]) == "danger":
+		audio_feedback_controller.play(AudioFeedbackController.Cue.CRITICAL_ALARM)
+	else:
+		audio_feedback_controller.play(AudioFeedbackController.Cue.WARNING_ALARM)
+
 	match int(event_data["type"]):
 		EventDirector.EventType.COOLING_FAILURE:
 			facility_state.apply_cooling_failure(float(event_data["duration"]))
@@ -341,8 +615,10 @@ func _on_event_raised(event_data: Dictionary) -> void:
 			facility_state.apply_power_surge(float(event_data["duration"]))
 		EventDirector.EventType.SENSOR_GLITCH:
 			facility_state.apply_sensor_glitch(int(event_data["target_system"]))
+			audio_feedback_controller.play(AudioFeedbackController.Cue.FAULT)
 		EventDirector.EventType.JAMMED_CONTROL:
 			intervention_controller.set_jammed_action(int(event_data["target_action"]))
+			audio_feedback_controller.play(AudioFeedbackController.Cue.FAULT)
 	_update_ui()
 
 

@@ -23,11 +23,11 @@ const NO_EVENT_AFTER_SECONDS: float = 86.0
 const FIRST_EVENT_NOT_BEFORE_SECONDS: float = 6.0
 const FAIR_RETRY_DELAY_SECONDS: float = 1.0
 
-const COOLING_FAILURE_DURATION: float = 8.0
+const COOLING_FAILURE_DURATION: float = 7.5
 const PRESSURE_SPIKE_DURATION: float = 5.0
-const POWER_SURGE_DURATION: float = 5.0
-const SENSOR_GLITCH_DURATION: float = 7.0
-const JAMMED_CONTROL_DURATION: float = 7.0
+const POWER_SURGE_DURATION: float = 4.5
+const SENSOR_GLITCH_DURATION: float = 6.5
+const JAMMED_CONTROL_DURATION: float = 6.5
 
 var use_fixed_seed: bool = true
 var fixed_seed: int = 1337
@@ -101,6 +101,24 @@ func clear_resettable_events() -> void:
 
 func get_active_event_count() -> int:
 	return _active_events.size()
+
+
+func set_seed_settings(use_fixed: bool, seed: int) -> void:
+	use_fixed_seed = use_fixed
+	fixed_seed = seed
+
+
+func force_event(event_type: int, elapsed_time: float) -> bool:
+	if event_type < 0 or event_type >= EVENT_TYPE_COUNT:
+		return false
+	var event: Dictionary = _build_event(event_type, elapsed_time)
+	if event.is_empty():
+		return false
+	_active_events.append(event)
+	_last_event_type = event_type
+	_last_target_key = str(event["target_key"])
+	event_raised.emit(event.duplicate(true))
+	return true
 
 
 func _update_active_events(delta_seconds: float) -> void:

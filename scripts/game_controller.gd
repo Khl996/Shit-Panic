@@ -39,13 +39,14 @@ const DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1)
 const FAULT_COLOR: Color = Color(0.498039, 0.568627, 0.552941, 1)
 const AC_LEAK_EVENT_ID: int = 7001
 const TAPE_FAILURE_EVENT_ID: int = 7002
-const AC_LEAK_START_SECONDS: float = 18.0
+const AC_LEAK_START_SECONDS: float = 7.0
 const TAPE_PATCH_DELAY_SECONDS: float = 22.0
 const TAPE_FAILURE_ALARM_SECONDS: float = 5.0
 const MAINTENANCE_TOOL_DUCT_TAPE: int = 0
 const MAINTENANCE_TOOL_BUCKET: int = 1
 
 @onready var console_root: Control = get_node("OuterMargin")
+@onready var main_layout: VBoxContainer = get_node("OuterMargin/MainLayout")
 @onready var timer_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock/TimerValue")
 @onready var integrity_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityLine/IntegrityValue")
 @onready var integrity_bar: ProgressBar = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/IntegrityBlock/IntegrityBar")
@@ -110,12 +111,23 @@ var _result_panel: PanelContainer
 var _result_title_label: Label
 var _result_body_label: Label
 var _retry_button: Button
+var _situation_panel: PanelContainer
+var _situation_title_label: Label
+var _situation_body_label: Label
+var _situation_hint_label: Label
+var _active_radio_event_id: int = -1
+var _active_radio_event_type: int = -1
+var _active_radio_event_title: String = ""
+var _active_radio_event_source: String = ""
+var _active_radio_event_severity: String = "warning"
 
 
 func _ready() -> void:
 	_build_status_styles()
 	facility_state = FacilityState.new(round_duration_seconds)
 	_validate_required_nodes()
+	_build_situation_panel()
+	_configure_arabic_text_direction(self)
 	_configure_interventions()
 	_configure_events()
 	_configure_alarm_feed()
@@ -183,6 +195,7 @@ func reset_round() -> void:
 func _validate_required_nodes() -> void:
 	var required_nodes: Array[Node] = [
 		console_root,
+		main_layout,
 		timer_value_label,
 		integrity_value_label,
 		integrity_bar,
@@ -219,6 +232,62 @@ func _validate_required_nodes() -> void:
 		if not is_instance_valid(required_node):
 			push_error("ManualOverride is missing a required UI node for Milestone 2.")
 			assert(false)
+
+
+func _configure_arabic_text_direction(root_node: Node) -> void:
+	if root_node is Label:
+		var label: Label = root_node as Label
+		label.text_direction = Control.TEXT_DIRECTION_AUTO
+	elif root_node is Button:
+		var button: Button = root_node as Button
+		button.text_direction = Control.TEXT_DIRECTION_AUTO
+
+	for child: Node in root_node.get_children():
+		_configure_arabic_text_direction(child)
+
+
+func _build_situation_panel() -> void:
+	_situation_panel = PanelContainer.new()
+	_situation_panel.name = "SituationPanel"
+	_situation_panel.custom_minimum_size = Vector2(0.0, 92.0)
+	_situation_panel.add_theme_stylebox_override("panel", _make_situation_panel_style())
+	main_layout.add_child(_situation_panel)
+	main_layout.move_child(_situation_panel, 2)
+
+	var margin: MarginContainer = MarginContainer.new()
+	margin.add_theme_constant_override("margin_left", 18)
+	margin.add_theme_constant_override("margin_top", 10)
+	margin.add_theme_constant_override("margin_right", 18)
+	margin.add_theme_constant_override("margin_bottom", 10)
+	_situation_panel.add_child(margin)
+
+	var layout: VBoxContainer = VBoxContainer.new()
+	layout.layout_direction = Control.LAYOUT_DIRECTION_LTR
+	layout.add_theme_constant_override("separation", 4)
+	margin.add_child(layout)
+
+	_situation_title_label = Label.new()
+	_situation_title_label.text_direction = Control.TEXT_DIRECTION_AUTO
+	_situation_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_situation_title_label.add_theme_font_size_override("font_size", 20)
+	_situation_title_label.add_theme_color_override("font_color", WARNING_COLOR)
+	layout.add_child(_situation_title_label)
+
+	_situation_body_label = Label.new()
+	_situation_body_label.text_direction = Control.TEXT_DIRECTION_AUTO
+	_situation_body_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_situation_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_situation_body_label.add_theme_font_size_override("font_size", 14)
+	_situation_body_label.add_theme_color_override("font_color", Color(0.898039, 0.909804, 0.894118, 1))
+	layout.add_child(_situation_body_label)
+
+	_situation_hint_label = Label.new()
+	_situation_hint_label.text_direction = Control.TEXT_DIRECTION_AUTO
+	_situation_hint_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
+	_situation_hint_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
+	_situation_hint_label.add_theme_font_size_override("font_size", 12)
+	_situation_hint_label.add_theme_color_override("font_color", STABLE_COLOR)
+	layout.add_child(_situation_hint_label)
 
 
 func _configure_interventions() -> void:
@@ -309,6 +378,11 @@ func _reset_round_stats() -> void:
 	_duct_tape_uses = 0
 	_bucket_uses = 0
 	_maintenance_notes.clear()
+	_active_radio_event_id = -1
+	_active_radio_event_type = -1
+	_active_radio_event_title = ""
+	_active_radio_event_source = ""
+	_active_radio_event_severity = "warning"
 
 
 func _build_result_overlay() -> void:
@@ -349,21 +423,21 @@ func _build_result_overlay() -> void:
 	panel_margin.add_child(layout)
 
 	_result_title_label = Label.new()
-	_result_title_label.text_direction = Control.TEXT_DIRECTION_LTR
+	_result_title_label.text_direction = Control.TEXT_DIRECTION_AUTO
 	_result_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
 	_result_title_label.add_theme_font_size_override("font_size", 34)
 	layout.add_child(_result_title_label)
 
 	_result_body_label = Label.new()
-	_result_body_label.text_direction = Control.TEXT_DIRECTION_LTR
+	_result_body_label.text_direction = Control.TEXT_DIRECTION_AUTO
 	_result_body_label.add_theme_font_size_override("font_size", 16)
 	_result_body_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
 	_result_body_label.size_flags_vertical = Control.SIZE_EXPAND_FILL
 	layout.add_child(_result_body_label)
 
 	_retry_button = Button.new()
-	_retry_button.text = "RETRY SHIFT"
-	_retry_button.text_direction = Control.TEXT_DIRECTION_LTR
+	_retry_button.text = "أعيد الشفت"
+	_retry_button.text_direction = Control.TEXT_DIRECTION_AUTO
 	_retry_button.custom_minimum_size = Vector2(0.0, 54.0)
 	_retry_button.add_theme_font_size_override("font_size", 18)
 	_retry_button.pressed.connect(reset_round)
@@ -372,7 +446,7 @@ func _build_result_overlay() -> void:
 
 func _show_result_overlay() -> void:
 	var survived: bool = facility_state.round_state == FacilityState.RoundState.SURVIVED
-	var title: String = "SHIFT SURVIVED" if survived else "FACILITY LOST"
+	var title: String = "عدّت المناوبة" if survived else "المبنى فلت من يدك"
 	var accent_color: Color = STABLE_COLOR if survived else DANGER_COLOR
 	_result_title_label.text = title
 	_result_title_label.add_theme_color_override("font_color", accent_color)
@@ -383,22 +457,22 @@ func _show_result_overlay() -> void:
 
 
 func _build_result_body(survived: bool) -> String:
-	var cause_label: String = "MAIN STRESS"
+	var cause_label: String = "أكثر شي تعبك"
 	if not survived:
-		cause_label = "FAILURE CAUSE"
+		cause_label = "سبب الانهيار"
 
 	return (
-		"FINAL INTEGRITY: %d%%\n" % int(roundf(facility_state.integrity))
-		+ "TIME SURVIVED: %s\n" % _format_time(facility_state.elapsed_time)
+		"سلامة المبنى: %d%%\n" % int(roundf(facility_state.integrity))
+		+ "الوقت اللي صمدته: %s\n" % _format_time(facility_state.elapsed_time)
 		+ "%s: %s\n" % [cause_label, facility_state.get_most_stressed_system_name()]
-		+ "INTERVENTIONS USED: %d\n" % _total_interventions_used
-		+ "MANUAL OVERRIDES USED: %d\n" % _manual_overrides_used
-		+ "DUCT TAPE USED: %d\n" % _duct_tape_uses
-		+ "BUCKET DEPLOYED: %d\n" % _bucket_uses
-		+ "EVENTS ENCOUNTERED: %d\n" % _events_encountered
-		+ "HIGHEST PANIC: %d%%\n" % int(roundf(_highest_panic_level * 100.0))
-		+ "PERFORMANCE GRADE: %s\n" % _performance_grade(survived)
-		+ "SHIFT NOTE: %s" % _post_shift_note()
+		+ "قراراتك: %d\n" % _total_interventions_used
+		+ "التصرف اليدوي: %d\n" % _manual_overrides_used
+		+ "الشطرطون: %d\n" % _duct_tape_uses
+		+ "السطل: %d\n" % _bucket_uses
+		+ "البلاغات اللي لحقتك: %d\n" % _events_encountered
+		+ "أعلى توتر: %d%%\n" % int(roundf(_highest_panic_level * 100.0))
+		+ "تقييم المناوبة: %s\n" % _performance_grade(survived)
+		+ "ملاحظة المدير: %s" % _post_shift_note()
 	)
 
 
@@ -416,7 +490,7 @@ func _performance_grade(survived: bool) -> String:
 
 func _post_shift_note() -> String:
 	if _maintenance_notes.is_empty():
-		return "No maintenance notes. Suspicious, but accepted."
+		return "ما فيه ملاحظات. هذا بحد ذاته يجيب الشك."
 	return _maintenance_notes[_maintenance_notes.size() - 1]
 
 
@@ -432,6 +506,21 @@ func _make_result_panel_style(accent_color: Color) -> StyleBoxFlat:
 	style.corner_radius_top_right = 2
 	style.corner_radius_bottom_right = 2
 	style.corner_radius_bottom_left = 2
+	return style
+
+
+func _make_situation_panel_style() -> StyleBoxFlat:
+	var style: StyleBoxFlat = StyleBoxFlat.new()
+	style.bg_color = Color(0.07451, 0.058824, 0.043137, 0.98)
+	style.border_color = WARNING_COLOR
+	style.border_width_left = 4
+	style.border_width_top = 1
+	style.border_width_right = 1
+	style.border_width_bottom = 2
+	style.corner_radius_top_left = 3
+	style.corner_radius_top_right = 3
+	style.corner_radius_bottom_right = 3
+	style.corner_radius_bottom_left = 3
 	return style
 
 
@@ -498,7 +587,7 @@ func _force_event_for_development(event_type: int) -> bool:
 	if raised:
 		_update_ui()
 	else:
-		action_feedback_label.text = "DEV EVENT BLOCKED"
+		action_feedback_label.text = "البلاغ التجريبي ما قدر يدخل."
 		audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
 	return true
 
@@ -519,8 +608,8 @@ func _update_maintenance_incidents(delta_seconds: float) -> void:
 			_tape_failure_alarm_active = false
 			alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
 				TAPE_FAILURE_EVENT_ID,
-				"TAPE PATCH FAILED",
-				"SERVER RACK",
+				"الشطرطون خان العشرة",
+				"دولاب السيرفر",
 				"danger"
 			))
 
@@ -533,14 +622,14 @@ func _start_ac_leak() -> void:
 	_ac_leak_active = true
 	_ac_leak_alarm_active = true
 	_events_encountered += 1
-	_maintenance_notes.append("AC drip over server rack detected.")
+	_maintenance_notes.append("المكيف ينقط فوق السيرفر. طبعًا فوق السيرفر بالذات.")
 	alarm_feed_controller.raise_alarm(_maintenance_alarm_data(
 		AC_LEAK_EVENT_ID,
-		"AC DRIP OVER SERVER",
-		"MANAGER AC",
+		"المكيف ينقط فوق السيرفر",
+		"مكيف المدير",
 		"warning"
 	))
-	maintenance_desk_controller.set_status("DRIP OVER SERVER", true)
+	maintenance_desk_controller.set_status("تنقيط فوق السيرفر", true)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.WARNING_ALARM)
 
 
@@ -549,16 +638,16 @@ func _patch_ac_leak_with_tape() -> void:
 	_duct_tape_uses += 1
 	_total_interventions_used += 1
 	_tape_failure_time = facility_state.elapsed_time + TAPE_PATCH_DELAY_SECONDS
-	_maintenance_notes.append("Duct tape used on AC drip. Temporary victory logged.")
+	_maintenance_notes.append("استخدمت الشطرطون. انتصار مؤقت ورائحته مشكلة قادمة.")
 	if _ac_leak_alarm_active:
 		_ac_leak_alarm_active = false
 		alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
 			AC_LEAK_EVENT_ID,
-			"AC DRIP OVER SERVER",
-			"MANAGER AC",
+			"المكيف ينقط فوق السيرفر",
+			"مكيف المدير",
 			"warning"
 		))
-	maintenance_desk_controller.set_status("TAPE HOLDING... FOR NOW", false)
+	maintenance_desk_controller.set_status("الشطرطون ماسك... للحين", false)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
 
 
@@ -566,16 +655,16 @@ func _catch_ac_leak_with_bucket() -> void:
 	_ac_leak_active = false
 	_bucket_uses += 1
 	_total_interventions_used += 1
-	_maintenance_notes.append("Bucket placed under AC drip. A rare legal solution.")
+	_maintenance_notes.append("حطيت السطل تحت التنقيط. حل محترم لدرجة تخوف.")
 	if _ac_leak_alarm_active:
 		_ac_leak_alarm_active = false
 		alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
 			AC_LEAK_EVENT_ID,
-			"AC DRIP OVER SERVER",
-			"MANAGER AC",
+			"المكيف ينقط فوق السيرفر",
+			"مكيف المدير",
 			"warning"
 		))
-	maintenance_desk_controller.set_status("BUCKET HOLDING DRIP", false)
+	maintenance_desk_controller.set_status("السطل مستلم التنقيط", false)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
 
 
@@ -585,14 +674,14 @@ func _trigger_tape_failure() -> void:
 	_tape_failure_alarm_remaining = TAPE_FAILURE_ALARM_SECONDS
 	_events_encountered += 1
 	facility_state.apply_bad_tape_failure()
-	_maintenance_notes.append("Duct tape gave up and blamed humidity.")
+	_maintenance_notes.append("الشطرطون استسلم وقال الرطوبة هي السبب.")
 	alarm_feed_controller.raise_alarm(_maintenance_alarm_data(
 		TAPE_FAILURE_EVENT_ID,
-		"TAPE PATCH FAILED",
-		"SERVER RACK",
+		"الشطرطون خان العشرة",
+		"دولاب السيرفر",
 		"danger"
 	))
-	maintenance_desk_controller.set_status("TAPE FAILED", true)
+	maintenance_desk_controller.set_status("الشطرطون فشل", true)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.CRITICAL_ALARM)
 
 
@@ -614,13 +703,13 @@ func _on_maintenance_tool_used(tool_id: int) -> void:
 			if _ac_leak_active:
 				_patch_ac_leak_with_tape()
 			else:
-				action_feedback_label.text = "NOTHING TO TAPE YET"
+				action_feedback_label.text = "ما فيه شي تلزقه الحين."
 				audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
 		MAINTENANCE_TOOL_BUCKET:
 			if _ac_leak_active:
 				_catch_ac_leak_with_bucket()
 			else:
-				action_feedback_label.text = "NO DRIP TO CATCH"
+				action_feedback_label.text = "ما فيه تنقيط يحتاج سطل."
 				audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
 	_update_ui()
 
@@ -661,6 +750,93 @@ func _update_ui() -> void:
 		facility_state.power_load,
 		facility_state.power_load_trend
 	)
+	_update_situation_panel()
+
+
+func _update_situation_panel() -> void:
+	if not is_instance_valid(_situation_title_label):
+		return
+
+	if _tape_failure_alarm_active:
+		_set_situation_text(
+			"الشطرطون خان العشرة",
+			"الحل السريع رجع يعضك. الكهرباء والتكييف أخذوا الضربة.",
+			"استخدم [1] أو [3] حسب اللي صار أحمر، وخلك جاهز للتصرف اليدوي [5].",
+			DANGER_COLOR
+		)
+		return
+
+	if _ac_leak_active:
+		_set_situation_text(
+			"المكيف ينقط فوق السيرفر",
+			"هذه مشكلة واضحة: مويه فوق شيء غالي. لا تحتاج شهادة هندسة عشان تعرف أنها مصيبة.",
+			"اختيار سريع: [Q] شطرطون. اختيار أهدأ: [W] سطل.",
+			WARNING_COLOR
+		)
+		return
+
+	if _tape_failure_time > 0.0:
+		_set_situation_text(
+			"الشطرطون ماسك... مؤقتًا",
+			"البلاغ اختفى، بس الحل السريع له ذاكرة سيئة. راقب الوضع ولا تثق فيه مرة.",
+			"استمر بالضغط على البلاغات. إذا رجع، لا تقول ما توقعت.",
+			WARNING_COLOR
+		)
+		return
+
+	if _active_radio_event_id != -1:
+		_set_situation_text(
+			"بلاغ اللاسلكي: %s" % _active_radio_event_title,
+			"المصدر: %s. الأرقام تحت هي الضغط، مو الهدف. الهدف تختار قرار واحد صح." % _active_radio_event_source,
+			_hint_for_event_type(_active_radio_event_type),
+			DANGER_COLOR if _is_active_radio_event_danger() else WARNING_COLOR
+		)
+		return
+
+	if facility_state.elapsed_time < AC_LEAK_START_SECONDS:
+		_set_situation_text(
+			"استلمت المناوبة",
+			"اصمد لين يخلص الوقت. البلاغات بتطلع هنا، والقرارات تحت. لا تضغط كل شيء مرة وحدة.",
+			"بعد شوي بيجيك أول موقف واضح. اقرأه، ثم اختر تصرفك.",
+			STABLE_COLOR
+		)
+		return
+
+	_set_situation_text(
+		"الوضع هادي زيادة",
+		"إذا ما فيه بلاغ واضح، راقب أعلى نظام وخل سلامة المبنى فوق الصفر.",
+		"الأرقام تساعدك، لكن البلاغات والقرارات هي اللعبة.",
+		STABLE_COLOR
+	)
+
+
+func _set_situation_text(title: String, body: String, hint: String, accent_color: Color) -> void:
+	_situation_title_label.text = title
+	_situation_body_label.text = body
+	_situation_hint_label.text = hint
+	_situation_title_label.add_theme_color_override("font_color", accent_color)
+
+
+func _hint_for_event_type(event_type: int) -> String:
+	match event_type:
+		EventDirector.EventType.COOLING_FAILURE:
+			return "جرّب [1] تبريد طوارئ إذا التكييف نار. انتبه: الحمل الكهربائي يرتفع."
+		EventDirector.EventType.PRESSURE_SPIKE:
+			return "جرّب [2] تنفيس المضخات إذا الضغط طار. انتبه: الحرارة ترتفع."
+		EventDirector.EventType.POWER_SURGE:
+			return "جرّب [3] تحويل الكهرباء إذا الحمل صار خطر. انتبه: التبريد يضعف."
+		EventDirector.EventType.SENSOR_GLITCH:
+			return "الحساس ضايع. [4] إعادة تشغيل يفك أعطال القراءة إذا احتجت."
+		EventDirector.EventType.JAMMED_CONTROL:
+			return "زر عالق. [4] إعادة تشغيل يفك الأزرار، بس يقفل اللوحة لحظات."
+		_:
+			return "اقرأ البلاغ، ثم اختر قرار واحد. التردد مكلف."
+
+
+func _is_active_radio_event_danger() -> bool:
+	if _active_radio_event_id == -1:
+		return false
+	return _active_radio_event_severity == "danger"
 
 
 func _update_system_ui(
@@ -674,11 +850,11 @@ func _update_system_ui(
 	trend_text: String
 ) -> void:
 	if facility_state.is_sensor_glitched(system_id):
-		value_label.text = "ERR"
+		value_label.text = "؟!"
 		value_label.add_theme_color_override("font_color", FAULT_COLOR)
 		meter.value = clampf(value, 0.0, 100.0)
 		meter.add_theme_stylebox_override("fill", _fault_bar_style)
-		state_label.text = "SIGNAL LOST"
+		state_label.text = "الإشارة ضايعة"
 		state_label.add_theme_color_override("font_color", FAULT_COLOR)
 		trend_label.text = "?"
 		trend_label.add_theme_color_override("font_color", FAULT_COLOR)
@@ -772,6 +948,11 @@ func _on_action_rejected(_action: int, _reason: String) -> void:
 
 func _on_event_raised(event_data: Dictionary) -> void:
 	_events_encountered += 1
+	_active_radio_event_id = int(event_data["id"])
+	_active_radio_event_type = int(event_data["type"])
+	_active_radio_event_title = str(event_data["title"])
+	_active_radio_event_source = str(event_data["source"])
+	_active_radio_event_severity = str(event_data["severity"])
 	alarm_feed_controller.raise_alarm(event_data)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.EVENT_RAISED)
 	if str(event_data["severity"]) == "danger":
@@ -796,6 +977,12 @@ func _on_event_raised(event_data: Dictionary) -> void:
 
 
 func _on_event_resolved(event_data: Dictionary) -> void:
+	if _active_radio_event_id == int(event_data["id"]):
+		_active_radio_event_id = -1
+		_active_radio_event_type = -1
+		_active_radio_event_title = ""
+		_active_radio_event_source = ""
+		_active_radio_event_severity = "warning"
 	alarm_feed_controller.resolve_alarm(event_data)
 	match int(event_data["type"]):
 		EventDirector.EventType.COOLING_FAILURE:

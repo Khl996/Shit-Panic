@@ -166,13 +166,13 @@ func get_status(value: float) -> int:
 func get_status_text(value: float) -> String:
 	match get_status(value):
 		SystemStatus.CRITICAL:
-			return "CRITICAL"
+			return "كارثة"
 		SystemStatus.DANGER:
-			return "DANGER"
+			return "خطر"
 		SystemStatus.WARNING:
-			return "WARNING"
+			return "انتبه"
 		_:
-			return "STABLE"
+			return "ماشي"
 
 
 func get_critical_system_count() -> int:
@@ -204,10 +204,10 @@ func force_loss() -> void:
 
 func get_most_stressed_system_name() -> String:
 	if temperature >= pressure and temperature >= power_load:
-		return "TEMPERATURE"
+		return "التكييف"
 	if pressure >= power_load:
-		return "PRESSURE"
-	return "POWER LOAD"
+		return "المضخات"
+	return "الكهرباء"
 
 
 func has_active_temporary_modifier() -> bool:
@@ -264,22 +264,22 @@ func clear_resettable_faults() -> void:
 
 func apply_manual_override() -> String:
 	# Ties resolve Temperature, then Pressure, then Power Load for deterministic playtests.
-	var target_name: String = "TEMPERATURE"
+	var target_key: String = "temperature"
 	if pressure > temperature and pressure >= power_load:
-		target_name = "PRESSURE"
+		target_key = "pressure"
 	elif power_load > temperature and power_load > pressure:
-		target_name = "POWER LOAD"
+		target_key = "power"
 
-	match target_name:
-		"TEMPERATURE":
+	match target_key:
+		"temperature":
 			_temperature_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
 			_pressure_offset += MANUAL_OVERRIDE_SIDE_DELTA
 			_power_load_offset += MANUAL_OVERRIDE_SIDE_DELTA
-		"PRESSURE":
+		"pressure":
 			_pressure_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
 			_temperature_offset += MANUAL_OVERRIDE_SIDE_DELTA
 			_power_load_offset += MANUAL_OVERRIDE_SIDE_DELTA
-		"POWER LOAD":
+		"power":
 			_power_load_offset += MANUAL_OVERRIDE_PRIMARY_DELTA
 			_temperature_offset += MANUAL_OVERRIDE_SIDE_DELTA
 			_pressure_offset += MANUAL_OVERRIDE_SIDE_DELTA
@@ -287,7 +287,17 @@ func apply_manual_override() -> String:
 	integrity = clampf(integrity + MANUAL_OVERRIDE_INTEGRITY_RESTORE, MIN_VALUE, MAX_VALUE)
 	_update_system_values(elapsed_time)
 	_update_panic_level()
-	return target_name
+	return _display_name_for_system_key(target_key)
+
+
+func _display_name_for_system_key(system_key: String) -> String:
+	match system_key:
+		"temperature":
+			return "التكييف"
+		"pressure":
+			return "المضخات"
+		_:
+			return "الكهرباء"
 
 
 func apply_cooling_failure(duration_seconds: float) -> void:

@@ -2,11 +2,11 @@ class_name AlarmFeedController
 extends RefCounted
 
 const RESOLVED_RETENTION_SECONDS: float = 5.0
-const ACTIVE_WARNING_COLOR: Color = Color(0.831373, 0.603922, 0.164706, 1)
-const ACTIVE_DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1)
-const MUTED_TEXT_COLOR: Color = Color(0.498039, 0.568627, 0.552941, 1)
-const PRIMARY_TEXT_COLOR: Color = Color(0.898039, 0.909804, 0.894118, 1)
-const EMPTY_TEXT_COLOR: Color = Color(0.27451, 0.352941, 0.34902, 1)
+const ACTIVE_WARNING_COLOR: Color = Color(0.541176, 0.317647, 0.0509804, 1)
+const ACTIVE_DANGER_COLOR: Color = Color(0.564706, 0.137255, 0.0980392, 1)
+const MUTED_TEXT_COLOR: Color = Color(0.388235, 0.286275, 0.196078, 1)
+const PRIMARY_TEXT_COLOR: Color = Color(0.156863, 0.105882, 0.0666667, 1)
+const EMPTY_TEXT_COLOR: Color = Color(0.443137, 0.380392, 0.305882, 1)
 
 var _alarm_count_label: Label
 var _slots: Array[PanelContainer] = []
@@ -18,6 +18,7 @@ var _warning_style: StyleBoxFlat
 var _danger_style: StyleBoxFlat
 var _resolved_style: StyleBoxFlat
 var _empty_style: StyleBoxFlat
+var _arrival_tween: Tween
 
 
 func configure(
@@ -66,6 +67,7 @@ func raise_alarm(event_data: Dictionary) -> void:
 	}
 	_alarms.push_front(alarm)
 	_render()
+	_animate_arrival()
 
 
 func resolve_alarm(event_data: Dictionary) -> void:
@@ -79,7 +81,8 @@ func resolve_alarm(event_data: Dictionary) -> void:
 
 
 func _render() -> void:
-	_alarm_count_label.text = "%d ACTIVE" % _active_alarm_count()
+	var active_count: int = _active_alarm_count()
+	_alarm_count_label.text = "%d بلاغ" % active_count
 
 	for slot_index: int in range(_slots.size()):
 		if slot_index >= _alarms.size():
@@ -92,7 +95,7 @@ func _render_alarm_slot(slot_index: int, alarm: Dictionary) -> void:
 	var is_active: bool = bool(alarm["active"])
 	var severity: String = str(alarm["severity"])
 	_name_labels[slot_index].text = str(alarm["title"])
-	_source_labels[slot_index].text = str(alarm["source"]) if is_active else "RESOLVED / %s" % str(alarm["source"])
+	_source_labels[slot_index].text = str(alarm["source"]) if is_active else "انحل / %s" % str(alarm["source"])
 	_time_labels[slot_index].text = str(alarm["time"])
 
 	if is_active:
@@ -114,7 +117,7 @@ func _render_alarm_slot(slot_index: int, alarm: Dictionary) -> void:
 func _render_empty_slot(slot_index: int) -> void:
 	_slots[slot_index].add_theme_stylebox_override("panel", _empty_style)
 	_name_labels[slot_index].text = "--"
-	_source_labels[slot_index].text = "NO ACTIVE SIGNAL"
+	_source_labels[slot_index].text = "اللاسلكي ساكت"
 	_time_labels[slot_index].text = "--:--"
 	_name_labels[slot_index].add_theme_color_override("font_color", EMPTY_TEXT_COLOR)
 	_source_labels[slot_index].add_theme_color_override("font_color", EMPTY_TEXT_COLOR)
@@ -137,26 +140,26 @@ func _format_time(seconds: float) -> String:
 
 
 func _build_styles() -> void:
-	_warning_style = _make_slot_style(Color(0.101961, 0.0823529, 0.0392157, 1), ACTIVE_WARNING_COLOR)
-	_danger_style = _make_slot_style(Color(0.101961, 0.0470588, 0.0431373, 1), ACTIVE_DANGER_COLOR)
-	_resolved_style = _make_slot_style(Color(0.054902, 0.0705882, 0.0745098, 1), Color(0.27451, 0.352941, 0.34902, 1))
-	_empty_style = _make_slot_style(Color(0.027451, 0.0392157, 0.0431373, 1), Color(0.164706, 0.223529, 0.227451, 1))
+	_warning_style = _make_slot_style(Color(0.901961, 0.843137, 0.694118, 1), Color(0.737255, 0.501961, 0.156863, 1))
+	_danger_style = _make_slot_style(Color(0.92549, 0.815686, 0.733333, 1), Color(0.745098, 0.231373, 0.196078, 1))
+	_resolved_style = _make_slot_style(Color(0.815686, 0.776471, 0.690196, 1), Color(0.443137, 0.34902, 0.231373, 1))
+	_empty_style = _make_slot_style(Color(0.156863, 0.117647, 0.0823529, 0.92), Color(0.301961, 0.211765, 0.121569, 1))
 
 
 func _make_slot_style(bg_color: Color, border_color: Color) -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = bg_color
-	style.border_width_left = 3
+	style.border_width_left = 4
 	style.border_width_top = 1
 	style.border_width_right = 1
-	style.border_width_bottom = 1
+	style.border_width_bottom = 2
 	style.border_color = border_color
-	style.corner_radius_top_left = 2
-	style.corner_radius_top_right = 2
-	style.corner_radius_bottom_right = 2
+	style.corner_radius_top_left = 4
+	style.corner_radius_top_right = 1
+	style.corner_radius_bottom_right = 5
 	style.corner_radius_bottom_left = 2
-	style.content_margin_left = 8
-	style.content_margin_top = 6
+	style.content_margin_left = 10
+	style.content_margin_top = 8
 	style.content_margin_right = 8
 	style.content_margin_bottom = 6
 	return style
@@ -180,3 +183,21 @@ func _validate_nodes(nodes: Array) -> void:
 		if not is_instance_valid(node):
 			push_error("AlarmFeedController has a missing alarm slot reference.")
 			assert(false)
+
+
+func _animate_arrival() -> void:
+	if _slots.is_empty():
+		return
+	var slot: PanelContainer = _slots[0]
+	if not is_instance_valid(slot) or not slot.is_inside_tree():
+		return
+	if slot.size.x <= 0.0 or slot.size.y <= 0.0:
+		return
+	slot.pivot_offset = Vector2(slot.size.x * 0.5, 0.0)
+	if _arrival_tween != null and _arrival_tween.is_valid():
+		_arrival_tween.kill()
+	slot.scale = Vector2(1.0, 0.35)
+	slot.modulate = Color(1.4, 1.35, 1.15, 0.0)
+	_arrival_tween = slot.create_tween().set_parallel(true)
+	_arrival_tween.tween_property(slot, "scale", Vector2(1.0, 1.0), 0.26).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	_arrival_tween.tween_property(slot, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.28)

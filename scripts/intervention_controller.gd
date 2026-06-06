@@ -13,8 +13,8 @@ enum Action {
 	OVERRIDE,
 }
 
-const DEFAULT_FEEDBACK: String = "CONTROL INPUT READY"
-const EXPIRED_FEEDBACK: String = "SHIFT COMPLETE — CONTROLS LOCKED"
+const DEFAULT_FEEDBACK: String = "اللاسلكي صاحي. راقب البلاغات واختر قرارك."
+const EXPIRED_FEEDBACK: String = "خلص الشفت. الأزرار تقفلت."
 const GLOBAL_LOCK_SECONDS: float = 2.5
 const MANUAL_OVERRIDE_MAX_USES: int = 2
 
@@ -27,11 +27,11 @@ const COOLDOWN_SECONDS: Array[float] = [
 ]
 
 const BUTTON_LABELS: Array[String] = [
-	"[1] EMERGENCY COOL\nTEMP ↓ / POWER ↑",
-	"[2] PRESSURE VENT\nPRESSURE ↓ / HEAT ↑",
-	"[3] REROUTE POWER\nLOAD ↓ / COOLING ↓",
-	"[4] SYSTEM RESET\nCLEARS CONTROL FAULTS",
-	"[5] MANUAL OVERRIDE\nCRITICAL RECOVERY",
+	"[1] تبريد طوارئ\nينزل الحر / يرفع الحمل",
+	"[2] تنفيس المضخات\nينزل الضغط / يرفع الحرارة",
+	"[3] تحويل الكهرباء\nينزل الحمل / يضعف التبريد",
+	"[4] إعادة تشغيل\nيفك الأعطال العالقة",
+	"[5] تصرف يدوي\nإنقاذ قوي ومرتين بس",
 ]
 
 var facility_state: FacilityState
@@ -45,6 +45,7 @@ var inputs_expired: bool = false
 var jammed_actions: Array[bool] = [false, false, false, false, false]
 var _has_external_resettable_faults: Callable
 var _clear_external_resettable_faults: Callable
+var _active_button_tweens: Array[Tween] = [null, null, null, null, null]
 
 
 func configure(
@@ -123,34 +124,39 @@ func try_action(action: int) -> bool:
 	if inputs_expired:
 		_set_feedback(EXPIRED_FEEDBACK)
 		_update_button_states()
+		_play_button_rejection(action)
 		action_rejected.emit(action, "expired")
 		state_changed.emit()
 		return true
 
 	if global_lock_remaining > 0.0:
-		_set_feedback("CONTROLS LOCKED")
+		_set_feedback("اصبر شوي. اللوحة ماسكة نفسها.")
 		_update_button_states()
+		_play_button_rejection(action)
 		action_rejected.emit(action, "locked")
 		state_changed.emit()
 		return true
 
 	if action == Action.OVERRIDE and manual_override_uses <= 0:
-		_set_feedback("MANUAL OVERRIDE DEPLETED")
+		_set_feedback("خلصت التصرفات اليدوية. عاد دبّرها.")
 		_update_button_states()
+		_play_button_rejection(action)
 		action_rejected.emit(action, "depleted")
 		state_changed.emit()
 		return true
 
 	if is_action_jammed(action):
-		_set_feedback("CONTROL JAMMED")
+		_set_feedback("الزر علق. واضح محد نظفه من 2012.")
 		_update_button_states()
+		_play_button_rejection(action)
 		action_rejected.emit(action, "jammed")
 		state_changed.emit()
 		return true
 
 	if cooldowns[action] > 0.0:
-		_set_feedback("ACTION ON COOLDOWN")
+		_set_feedback("هالقرار يبرد. جرب شي ثاني.")
 		_update_button_states()
+		_play_button_rejection(action)
 		action_rejected.emit(action, "cooldown")
 		state_changed.emit()
 		return true
@@ -159,18 +165,18 @@ func try_action(action: int) -> bool:
 		Action.COOL:
 			facility_state.apply_emergency_cooling()
 			_start_cooldown(action)
-			_set_feedback("EMERGENCY COOLING ENGAGED")
+			_set_feedback("شغلت تبريد طوارئ. الكهرباء بتزعل شوي.")
 		Action.VENT:
 			facility_state.apply_pressure_vent()
 			_start_cooldown(action)
-			_set_feedback("PRESSURE VENT OPEN")
+			_set_feedback("فتحت التنفيس. الضغط نزل، والحرارة بتتنفس عليك.")
 		Action.REROUTE:
 			facility_state.apply_power_reroute()
 			_start_cooldown(action)
-			_set_feedback("POWER REROUTED — COOLING DEGRADED")
+			_set_feedback("حوّلت الكهرباء. التبريد بيصير نفسية شوي.")
 		Action.RESET:
 			if not _has_any_resettable_fault():
-				_set_feedback("NO CONTROL FAULT TO RESET")
+				_set_feedback("ما فيه عطل ينفك. لا تضغط عالفاضي.")
 				_update_button_states()
 				action_rejected.emit(action, "no_fault")
 				state_changed.emit()
@@ -180,14 +186,15 @@ func try_action(action: int) -> bool:
 			_clear_external_faults()
 			global_lock_remaining = GLOBAL_LOCK_SECONDS
 			_start_cooldown(action)
-			_set_feedback("CONTROL FAULTS CLEARED")
+			_set_feedback("سويت إعادة تشغيل. إذا اشتغل نقول الحمد لله.")
 		Action.OVERRIDE:
 			var target_name: String = facility_state.apply_manual_override()
 			manual_override_uses -= 1
 			_start_cooldown(action)
-			_set_feedback("MANUAL OVERRIDE APPLIED TO %s" % target_name)
+			_set_feedback("تدخلت يدويًا في %s. لا تعلم المدير." % target_name)
 
 	_update_button_states()
+	_play_button_acceptance(action)
 	action_accepted.emit(action)
 	state_changed.emit()
 	return true
@@ -248,7 +255,7 @@ func is_action_counter_unavailable(action: int) -> bool:
 
 
 func _update_button_states() -> void:
-	override_remaining_label.text = "MANUAL OVERRIDE: %d REMAINING" % manual_override_uses
+	override_remaining_label.text = "تصرف يدوي: %d باقي" % manual_override_uses
 	for index: int in range(buttons.size()):
 		var state_text: String = _state_text_for(index)
 		buttons[index].text = "%s\n%s" % [BUTTON_LABELS[index], state_text]
@@ -257,16 +264,16 @@ func _update_button_states() -> void:
 
 func _state_text_for(action: int) -> String:
 	if inputs_expired:
-		return "LOCKED"
+		return "مقفل"
 	if global_lock_remaining > 0.0:
-		return "LOCKED"
+		return "مقفل"
 	if action == Action.OVERRIDE and manual_override_uses <= 0:
-		return "NO USES"
+		return "خلص"
 	if is_action_jammed(action):
-		return "JAMMED"
+		return "عالق"
 	if cooldowns[action] > 0.0:
 		return "%.1fs" % cooldowns[action]
-	return "READY"
+	return "جاهز"
 
 
 func _is_button_disabled(action: int) -> bool:
@@ -310,3 +317,42 @@ func _validate_configuration() -> void:
 	if not is_instance_valid(override_remaining_label) or not is_instance_valid(feedback_label):
 		push_error("InterventionController is missing required action labels.")
 		assert(false)
+
+
+func _play_button_acceptance(action: int) -> void:
+	if action < 0 or action >= buttons.size():
+		return
+	var button: Button = buttons[action]
+	if not is_instance_valid(button) or not button.is_inside_tree():
+		return
+	if button.size.x > 0.0 and button.size.y > 0.0:
+		button.pivot_offset = button.size * 0.5
+	var tween: Tween = _restart_button_tween(action, button)
+	tween.tween_property(button, "scale", Vector2(0.92, 0.94), 0.07)
+	tween.tween_property(button, "scale", Vector2(1.0, 1.0), 0.24).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+
+
+func _play_button_rejection(action: int) -> void:
+	if action < 0 or action >= buttons.size():
+		return
+	var button: Button = buttons[action]
+	if not is_instance_valid(button) or not button.is_inside_tree():
+		return
+	if button.size.x > 0.0 and button.size.y > 0.0:
+		button.pivot_offset = button.size * 0.5
+	var tween: Tween = _restart_button_tween(action, button)
+	tween.tween_property(button, "rotation", deg_to_rad(-2.6), 0.05)
+	tween.tween_property(button, "rotation", deg_to_rad(2.6), 0.07)
+	tween.tween_property(button, "rotation", deg_to_rad(-1.4), 0.06)
+	tween.tween_property(button, "rotation", 0.0, 0.07).set_trans(Tween.TRANS_SINE).set_ease(Tween.EASE_OUT)
+
+
+func _restart_button_tween(action: int, button: Button) -> Tween:
+	var previous: Tween = _active_button_tweens[action]
+	if previous != null and previous.is_valid():
+		previous.kill()
+	button.scale = Vector2(1.0, 1.0)
+	button.rotation = 0.0
+	var tween: Tween = button.create_tween()
+	_active_button_tweens[action] = tween
+	return tween

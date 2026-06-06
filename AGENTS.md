@@ -38,8 +38,9 @@
 
 - Single-player.
 - One-screen panic console.
-- English in-game interface.
+- Saudi Arabic in-game interface by default.
 - Arabic planning and discussion are allowed.
+- English project names, key labels, and internal identifiers are allowed when useful.
 - No 3D in the prototype.
 - No multiplayer.
 - No external assets in early milestones.

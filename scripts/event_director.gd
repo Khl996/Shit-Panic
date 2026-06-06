@@ -20,7 +20,7 @@ enum Phase {
 
 const EVENT_TYPE_COUNT: int = 5
 const NO_EVENT_AFTER_SECONDS: float = 86.0
-const FIRST_EVENT_NOT_BEFORE_SECONDS: float = 6.0
+const FIRST_EVENT_NOT_BEFORE_SECONDS: float = 15.0
 const FAIR_RETRY_DELAY_SECONDS: float = 1.0
 
 const COOLING_FAILURE_DURATION: float = 7.5
@@ -64,7 +64,7 @@ func reset() -> void:
 	_last_target_key = ""
 	active_seed = fixed_seed if use_fixed_seed else int(Time.get_unix_time_from_system())
 	_rng.seed = active_seed
-	_next_event_time = _interval_for_phase(Phase.ORIENTATION)
+	_next_event_time = maxf(FIRST_EVENT_NOT_BEFORE_SECONDS, _interval_for_phase(Phase.ORIENTATION))
 
 
 func advance(delta_seconds: float, elapsed_time: float) -> void:
@@ -200,11 +200,11 @@ func _is_event_type_fair(event_type: int, phase: int) -> bool:
 
 	match event_type:
 		EventType.COOLING_FAILURE:
-			return _is_physical_event_fair(FacilityState.SYSTEM_TEMPERATURE, InterventionController.Action.COOL, "SYS-T01")
+			return _is_physical_event_fair(FacilityState.SYSTEM_TEMPERATURE, InterventionController.Action.COOL, "غرفة التكييف")
 		EventType.PRESSURE_SPIKE:
-			return _is_physical_event_fair(FacilityState.SYSTEM_PRESSURE, InterventionController.Action.VENT, "SYS-P02")
+			return _is_physical_event_fair(FacilityState.SYSTEM_PRESSURE, InterventionController.Action.VENT, "القبو")
 		EventType.POWER_SURGE:
-			return _is_physical_event_fair(FacilityState.SYSTEM_POWER_LOAD, InterventionController.Action.REROUTE, "SYS-E03")
+			return _is_physical_event_fair(FacilityState.SYSTEM_POWER_LOAD, InterventionController.Action.REROUTE, "لوحة الكهرباء")
 		EventType.SENSOR_GLITCH:
 			if _has_active_type(EventType.JAMMED_CONTROL) and phase == Phase.ORIENTATION:
 				return false
@@ -245,26 +245,26 @@ func _build_event(event_type: int, elapsed_time: float) -> Dictionary:
 		EventType.COOLING_FAILURE:
 			event["duration"] = COOLING_FAILURE_DURATION
 			event["remaining"] = COOLING_FAILURE_DURATION
-			event["title"] = "COOLING FAILURE"
-			event["source"] = "LOOP 01"
+			event["title"] = "التكييف قرر يستقيل"
+			event["source"] = "غرفة التكييف"
 			event["target_system"] = FacilityState.SYSTEM_TEMPERATURE
-			event["target_key"] = "SYS-T01"
+			event["target_key"] = "غرفة التكييف"
 			if _facility_state.temperature >= FacilityState.CATASTROPHIC_LIMIT:
 				event["severity"] = "danger"
 		EventType.PRESSURE_SPIKE:
 			event["duration"] = PRESSURE_SPIKE_DURATION
 			event["remaining"] = PRESSURE_SPIKE_DURATION
-			event["title"] = "PRESSURE SPIKE"
-			event["source"] = "SECTOR B"
+			event["title"] = "ضغط المضخات يعاند"
+			event["source"] = "القبو"
 			event["target_system"] = FacilityState.SYSTEM_PRESSURE
-			event["target_key"] = "SYS-P02"
+			event["target_key"] = "القبو"
 		EventType.POWER_SURGE:
 			event["duration"] = POWER_SURGE_DURATION
 			event["remaining"] = POWER_SURGE_DURATION
-			event["title"] = "POWER SURGE"
-			event["source"] = "MAIN BUS"
+			event["title"] = "الكهرباء شادة حيلها"
+			event["source"] = "لوحة الكهرباء"
 			event["target_system"] = FacilityState.SYSTEM_POWER_LOAD
-			event["target_key"] = "SYS-E03"
+			event["target_key"] = "لوحة الكهرباء"
 			event["severity"] = "danger"
 		EventType.SENSOR_GLITCH:
 			var sensor_target: int = _select_sensor_target()
@@ -272,7 +272,7 @@ func _build_event(event_type: int, elapsed_time: float) -> Dictionary:
 				return {}
 			event["duration"] = SENSOR_GLITCH_DURATION
 			event["remaining"] = SENSOR_GLITCH_DURATION
-			event["title"] = "SENSOR SIGNAL LOST"
+			event["title"] = "الحساس يقول مدري"
 			event["source"] = _source_for_system(sensor_target)
 			event["target_system"] = sensor_target
 			event["target_key"] = _source_for_system(sensor_target)
@@ -282,7 +282,7 @@ func _build_event(event_type: int, elapsed_time: float) -> Dictionary:
 				return {}
 			event["duration"] = JAMMED_CONTROL_DURATION
 			event["remaining"] = JAMMED_CONTROL_DURATION
-			event["title"] = "CONTROL JAMMED"
+			event["title"] = "زر علق من الرطوبة"
 			event["source"] = _source_for_action(jammed_action)
 			event["target_action"] = jammed_action
 			event["target_key"] = _source_for_action(jammed_action)
@@ -366,21 +366,21 @@ func _value_for_system(system_id: int) -> float:
 func _source_for_system(system_id: int) -> String:
 	match system_id:
 		FacilityState.SYSTEM_TEMPERATURE:
-			return "SYS-T01"
+			return "غرفة التكييف"
 		FacilityState.SYSTEM_PRESSURE:
-			return "SYS-P02"
+			return "القبو"
 		_:
-			return "SYS-E03"
+			return "لوحة الكهرباء"
 
 
 func _source_for_action(action: int) -> String:
 	match action:
 		InterventionController.Action.COOL:
-			return "COOL"
+			return "زر التبريد"
 		InterventionController.Action.VENT:
-			return "VENT"
+			return "زر التنفيس"
 		_:
-			return "REROUTE"
+			return "زر التحويل"
 
 
 func _validate_configuration() -> void:

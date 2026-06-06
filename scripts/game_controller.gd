@@ -1,5 +1,7 @@
 extends Control
 
+const MaintenanceDeskControllerScript = preload("res://scripts/maintenance_desk_controller.gd")
+
 @export var round_duration_seconds: float = 90.0
 @export var use_fixed_seed: bool = true
 @export var fixed_seed: int = 1337
@@ -13,7 +15,7 @@ var event_director: EventDirector
 var alarm_feed_controller: AlarmFeedController
 var audio_feedback_controller: AudioFeedbackController
 var panic_feedback_controller: PanicFeedbackController
-var maintenance_desk_controller: MaintenanceDeskController
+var maintenance_desk_controller
 var _controls_expired_notified: bool = false
 var _outcome_reported: bool = false
 var _total_interventions_used: int = 0
@@ -40,6 +42,8 @@ const TAPE_FAILURE_EVENT_ID: int = 7002
 const AC_LEAK_START_SECONDS: float = 18.0
 const TAPE_PATCH_DELAY_SECONDS: float = 22.0
 const TAPE_FAILURE_ALARM_SECONDS: float = 5.0
+const MAINTENANCE_TOOL_DUCT_TAPE: int = 0
+const MAINTENANCE_TOOL_BUCKET: int = 1
 
 @onready var console_root: Control = get_node("OuterMargin")
 @onready var timer_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock/TimerValue")
@@ -264,7 +268,7 @@ func _configure_feedback() -> void:
 
 
 func _configure_maintenance_desk() -> void:
-	maintenance_desk_controller = MaintenanceDeskController.new()
+	maintenance_desk_controller = MaintenanceDeskControllerScript.new()
 	maintenance_desk_controller.configure(self)
 	maintenance_desk_controller.tool_used.connect(_on_maintenance_tool_used)
 
@@ -606,13 +610,13 @@ func _on_maintenance_tool_used(tool_id: int) -> void:
 	if facility_state.is_finished():
 		return
 	match tool_id:
-		MaintenanceDeskController.Tool.DUCT_TAPE:
+		MAINTENANCE_TOOL_DUCT_TAPE:
 			if _ac_leak_active:
 				_patch_ac_leak_with_tape()
 			else:
 				action_feedback_label.text = "NOTHING TO TAPE YET"
 				audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
-		MaintenanceDeskController.Tool.BUCKET:
+		MAINTENANCE_TOOL_BUCKET:
 			if _ac_leak_active:
 				_catch_ac_leak_with_bucket()
 			else:

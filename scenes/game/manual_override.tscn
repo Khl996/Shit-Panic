@@ -738,7 +738,7 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
 theme_override_font_sizes/font_size = 12
-text = "3 ACTIVE"
+text = "0 ACTIVE"
 horizontal_alignment = 2
 
 [node name="AlarmWarningStrip" type="Panel" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
@@ -766,21 +766,21 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
 theme_override_font_sizes/font_size = 14
-text = "PRESSURE RISING"
+text = "--"
 
 [node name="Alarm1Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row/Alarm1Text"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
 theme_override_font_sizes/font_size = 11
-text = "SECTOR B"
+text = "NO ACTIVE SIGNAL"
 
 [node name="Alarm1Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry1/AlarmEntry1Row"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
 theme_override_font_sizes/font_size = 12
-text = "00:12"
+text = "--:--"
 
 [node name="AlarmEntry2" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
 layout_mode = 2
@@ -802,21 +802,21 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
 theme_override_font_sizes/font_size = 14
-text = "COOLING UNSTABLE"
+text = "--"
 
 [node name="Alarm2Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row/Alarm2Text"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
 theme_override_font_sizes/font_size = 11
-text = "LOOP 01"
+text = "NO ACTIVE SIGNAL"
 
 [node name="Alarm2Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry2/AlarmEntry2Row"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.831373, 0.603922, 0.164706, 1)
 theme_override_font_sizes/font_size = 12
-text = "00:18"
+text = "--:--"
 
 [node name="AlarmEntry3" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
 layout_mode = 2
@@ -838,21 +838,21 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.898039, 0.909804, 0.894118, 1)
 theme_override_font_sizes/font_size = 14
-text = "POWER SURGE IN 3..."
+text = "--"
 
 [node name="Alarm3Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row/Alarm3Text"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
 theme_override_font_sizes/font_size = 11
-text = "MAIN BUS"
+text = "NO ACTIVE SIGNAL"
 
 [node name="Alarm3Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry3/AlarmEntry3Row"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.788235, 0.294118, 0.258824, 1)
 theme_override_font_sizes/font_size = 12
-text = "00:24"
+text = "--:--"
 
 [node name="AlarmEntry4" type="PanelContainer" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
 layout_mode = 2
@@ -874,21 +874,21 @@ layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.737255, 0.788235, 0.776471, 1)
 theme_override_font_sizes/font_size = 14
-text = "SENSOR RESPONSE DELAY"
+text = "--"
 
 [node name="Alarm4Source" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row/Alarm4Text"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
 theme_override_font_sizes/font_size = 11
-text = "SYS-T01"
+text = "NO ACTIVE SIGNAL"
 
 [node name="Alarm4Time" type="Label" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout/AlarmEntry4/AlarmEntry4Row"]
 layout_mode = 2
 text_direction = 1
 theme_override_colors/font_color = Color(0.498039, 0.568627, 0.552941, 1)
 theme_override_font_sizes/font_size = 12
-text = "00:31"
+text = "--:--"
 
 [node name="AlarmSpacer" type="Control" parent="OuterMargin/MainLayout/ContentArea/AlarmSection/AlarmPad/AlarmLayout"]
 layout_mode = 2

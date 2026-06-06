@@ -54,6 +54,16 @@ const SYSTEM_RESET_POWER_DELTA: float = 4.0
 const MANUAL_OVERRIDE_PRIMARY_DELTA: float = -22.0
 const MANUAL_OVERRIDE_SIDE_DELTA: float = 5.0
 const MANUAL_OVERRIDE_INTEGRITY_RESTORE: float = 4.0
+const COOLING_FAILURE_TEMPERATURE_DELTA: float = 5.0
+const COOLING_FAILURE_TEMPERATURE_PER_SECOND: float = 1.2
+const PRESSURE_SPIKE_PRESSURE_DELTA: float = 14.0
+const PRESSURE_SPIKE_PRESSURE_PER_SECOND: float = 0.7
+const POWER_SURGE_POWER_DELTA: float = 15.0
+const POWER_SURGE_POWER_PER_SECOND: float = 0.8
+
+const SYSTEM_TEMPERATURE: int = 0
+const SYSTEM_PRESSURE: int = 1
+const SYSTEM_POWER_LOAD: int = 2
 
 var temperature: float = INITIAL_TEMPERATURE
 var pressure: float = INITIAL_PRESSURE
@@ -77,6 +87,10 @@ var _temperature_offset: float = 0.0
 var _pressure_offset: float = 0.0
 var _power_load_offset: float = 0.0
 var _reroute_cooling_penalty_remaining: float = 0.0
+var _cooling_failure_remaining: float = 0.0
+var _pressure_spike_remaining: float = 0.0
+var _power_surge_remaining: float = 0.0
+var _sensor_glitch_system: int = -1
 
 
 func _init(round_duration_seconds: float = DEFAULT_ROUND_DURATION_SECONDS) -> void:
@@ -104,6 +118,10 @@ func reset(round_duration_seconds: float = DEFAULT_ROUND_DURATION_SECONDS) -> vo
 	_pressure_offset = 0.0
 	_power_load_offset = 0.0
 	_reroute_cooling_penalty_remaining = 0.0
+	_cooling_failure_remaining = 0.0
+	_pressure_spike_remaining = 0.0
+	_power_surge_remaining = 0.0
+	_sensor_glitch_system = -1
 
 
 func advance(delta_seconds: float) -> void:
@@ -116,6 +134,7 @@ func advance(delta_seconds: float) -> void:
 	remaining_time = maxf(_round_duration_seconds - elapsed_time, 0.0)
 
 	_update_temporary_modifiers(safe_delta)
+	_update_event_modifiers(safe_delta)
 	_update_system_values(elapsed_time)
 	_update_trends(previous_elapsed_time)
 	_update_integrity(safe_delta)
@@ -159,6 +178,18 @@ func has_active_temporary_modifier() -> bool:
 	return _reroute_cooling_penalty_remaining > 0.0
 
 
+func has_sensor_glitch() -> bool:
+	return _sensor_glitch_system >= 0
+
+
+func is_sensor_glitched(system_id: int) -> bool:
+	return _sensor_glitch_system == system_id
+
+
+func has_active_resettable_fault() -> bool:
+	return has_active_temporary_modifier() or has_sensor_glitch()
+
+
 func apply_emergency_cooling() -> void:
 	_temperature_offset += EMERGENCY_COOL_TEMPERATURE_DELTA
 	_power_load_offset += EMERGENCY_COOL_POWER_DELTA
@@ -178,12 +209,21 @@ func apply_power_reroute() -> void:
 
 
 func apply_system_reset() -> bool:
-	if not has_active_temporary_modifier():
+	if not has_active_resettable_fault():
 		return false
-	_reroute_cooling_penalty_remaining = 0.0
+	perform_system_reset()
+	return true
+
+
+func perform_system_reset() -> void:
+	clear_resettable_faults()
 	_power_load_offset += SYSTEM_RESET_POWER_DELTA
 	_update_system_values(elapsed_time)
-	return true
+
+
+func clear_resettable_faults() -> void:
+	_reroute_cooling_penalty_remaining = 0.0
+	clear_sensor_glitches()
 
 
 func apply_manual_override() -> String:
@@ -212,6 +252,44 @@ func apply_manual_override() -> String:
 	_update_system_values(elapsed_time)
 	_update_panic_level()
 	return target_name
+
+
+func apply_cooling_failure(duration_seconds: float) -> void:
+	_temperature_offset += COOLING_FAILURE_TEMPERATURE_DELTA
+	_cooling_failure_remaining = maxf(_cooling_failure_remaining, duration_seconds)
+	_update_system_values(elapsed_time)
+
+
+func clear_cooling_failure() -> void:
+	_cooling_failure_remaining = 0.0
+
+
+func apply_pressure_spike(duration_seconds: float) -> void:
+	_pressure_offset += PRESSURE_SPIKE_PRESSURE_DELTA
+	_pressure_spike_remaining = maxf(_pressure_spike_remaining, duration_seconds)
+	_update_system_values(elapsed_time)
+
+
+func clear_pressure_spike() -> void:
+	_pressure_spike_remaining = 0.0
+
+
+func apply_power_surge(duration_seconds: float) -> void:
+	_power_load_offset += POWER_SURGE_POWER_DELTA
+	_power_surge_remaining = maxf(_power_surge_remaining, duration_seconds)
+	_update_system_values(elapsed_time)
+
+
+func clear_power_surge() -> void:
+	_power_surge_remaining = 0.0
+
+
+func apply_sensor_glitch(system_id: int) -> void:
+	_sensor_glitch_system = system_id
+
+
+func clear_sensor_glitches() -> void:
+	_sensor_glitch_system = -1
 
 
 func _update_system_values(time_seconds: float) -> void:
@@ -251,6 +329,23 @@ func _update_temporary_modifiers(delta_seconds: float) -> void:
 	var active_delta: float = minf(delta_seconds, _reroute_cooling_penalty_remaining)
 	_temperature_offset += REROUTE_TEMPERATURE_PENALTY_PER_SECOND * active_delta
 	_reroute_cooling_penalty_remaining = maxf(_reroute_cooling_penalty_remaining - delta_seconds, 0.0)
+
+
+func _update_event_modifiers(delta_seconds: float) -> void:
+	if _cooling_failure_remaining > 0.0:
+		var cooling_delta: float = minf(delta_seconds, _cooling_failure_remaining)
+		_temperature_offset += COOLING_FAILURE_TEMPERATURE_PER_SECOND * cooling_delta
+		_cooling_failure_remaining = maxf(_cooling_failure_remaining - delta_seconds, 0.0)
+
+	if _pressure_spike_remaining > 0.0:
+		var pressure_delta: float = minf(delta_seconds, _pressure_spike_remaining)
+		_pressure_offset += PRESSURE_SPIKE_PRESSURE_PER_SECOND * pressure_delta
+		_pressure_spike_remaining = maxf(_pressure_spike_remaining - delta_seconds, 0.0)
+
+	if _power_surge_remaining > 0.0:
+		var power_delta: float = minf(delta_seconds, _power_surge_remaining)
+		_power_load_offset += POWER_SURGE_POWER_PER_SECOND * power_delta
+		_power_surge_remaining = maxf(_power_surge_remaining - delta_seconds, 0.0)
 
 
 func _update_trends(previous_elapsed_time: float) -> void:

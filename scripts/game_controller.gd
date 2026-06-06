@@ -13,6 +13,7 @@ var event_director: EventDirector
 var alarm_feed_controller: AlarmFeedController
 var audio_feedback_controller: AudioFeedbackController
 var panic_feedback_controller: PanicFeedbackController
+var maintenance_desk_controller: MaintenanceDeskController
 var _controls_expired_notified: bool = false
 var _outcome_reported: bool = false
 var _total_interventions_used: int = 0
@@ -20,11 +21,25 @@ var _manual_overrides_used: int = 0
 var _events_encountered: int = 0
 var _highest_panic_level: float = 0.0
 var _previous_integrity: float = 100.0
+var _leak_started: bool = false
+var _ac_leak_active: bool = false
+var _ac_leak_alarm_active: bool = false
+var _tape_failure_time: float = -1.0
+var _tape_failure_alarm_active: bool = false
+var _tape_failure_alarm_remaining: float = 0.0
+var _duct_tape_uses: int = 0
+var _bucket_uses: int = 0
+var _maintenance_notes: Array[String] = []
 
 const STABLE_COLOR: Color = Color(0.411765, 0.717647, 0.682353, 1)
 const WARNING_COLOR: Color = Color(0.831373, 0.603922, 0.164706, 1)
 const DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1)
 const FAULT_COLOR: Color = Color(0.498039, 0.568627, 0.552941, 1)
+const AC_LEAK_EVENT_ID: int = 7001
+const TAPE_FAILURE_EVENT_ID: int = 7002
+const AC_LEAK_START_SECONDS: float = 18.0
+const TAPE_PATCH_DELAY_SECONDS: float = 22.0
+const TAPE_FAILURE_ALARM_SECONDS: float = 5.0
 
 @onready var console_root: Control = get_node("OuterMargin")
 @onready var timer_value_label: Label = get_node("OuterMargin/MainLayout/Header/HeaderPad/HeaderRow/TimerBlock/TimerValue")
@@ -101,6 +116,7 @@ func _ready() -> void:
 	_configure_events()
 	_configure_alarm_feed()
 	_configure_feedback()
+	_configure_maintenance_desk()
 	_build_result_overlay()
 	_reset_round_stats()
 	_update_ui()
@@ -110,6 +126,7 @@ func _process(delta: float) -> void:
 	if facility_state.round_state == FacilityState.RoundState.RUNNING:
 		var integrity_before: float = facility_state.integrity
 		facility_state.advance(delta)
+		_update_maintenance_incidents(delta)
 		var integrity_draining: bool = facility_state.integrity < integrity_before - 0.01
 		_highest_panic_level = maxf(_highest_panic_level, facility_state.panic_level)
 		if facility_state.is_finished():
@@ -137,6 +154,9 @@ func _unhandled_input(event: InputEvent) -> void:
 		return
 	if facility_state.is_finished():
 		return
+	if maintenance_desk_controller.handle_key_input(event):
+		get_viewport().set_input_as_handled()
+		return
 	if intervention_controller.handle_key_input(event):
 		get_viewport().set_input_as_handled()
 
@@ -151,6 +171,7 @@ func reset_round() -> void:
 	alarm_feed_controller.reset()
 	audio_feedback_controller.reset()
 	panic_feedback_controller.reset()
+	maintenance_desk_controller.reset()
 	_result_overlay.visible = false
 	_update_ui()
 
@@ -242,11 +263,19 @@ func _configure_feedback() -> void:
 	panic_feedback_controller.configure(self, console_root)
 
 
+func _configure_maintenance_desk() -> void:
+	maintenance_desk_controller = MaintenanceDeskController.new()
+	maintenance_desk_controller.configure(self)
+	maintenance_desk_controller.tool_used.connect(_on_maintenance_tool_used)
+
+
 func _notify_controls_expired() -> void:
 	if _controls_expired_notified:
 		return
 	_controls_expired_notified = true
 	intervention_controller.expire_controls()
+	if maintenance_desk_controller != null:
+		maintenance_desk_controller.set_tools_locked(true)
 
 
 func _finish_round() -> void:
@@ -267,6 +296,15 @@ func _reset_round_stats() -> void:
 	_events_encountered = 0
 	_highest_panic_level = 0.0
 	_previous_integrity = FacilityState.INITIAL_INTEGRITY
+	_leak_started = false
+	_ac_leak_active = false
+	_ac_leak_alarm_active = false
+	_tape_failure_time = -1.0
+	_tape_failure_alarm_active = false
+	_tape_failure_alarm_remaining = 0.0
+	_duct_tape_uses = 0
+	_bucket_uses = 0
+	_maintenance_notes.clear()
 
 
 func _build_result_overlay() -> void:
@@ -351,9 +389,12 @@ func _build_result_body(survived: bool) -> String:
 		+ "%s: %s\n" % [cause_label, facility_state.get_most_stressed_system_name()]
 		+ "INTERVENTIONS USED: %d\n" % _total_interventions_used
 		+ "MANUAL OVERRIDES USED: %d\n" % _manual_overrides_used
+		+ "DUCT TAPE USED: %d\n" % _duct_tape_uses
+		+ "BUCKET DEPLOYED: %d\n" % _bucket_uses
 		+ "EVENTS ENCOUNTERED: %d\n" % _events_encountered
 		+ "HIGHEST PANIC: %d%%\n" % int(roundf(_highest_panic_level * 100.0))
-		+ "PERFORMANCE GRADE: %s" % _performance_grade(survived)
+		+ "PERFORMANCE GRADE: %s\n" % _performance_grade(survived)
+		+ "SHIFT NOTE: %s" % _post_shift_note()
 	)
 
 
@@ -367,6 +408,12 @@ func _performance_grade(survived: bool) -> String:
 	if facility_state.integrity >= 25.0:
 		return "C"
 	return "D"
+
+
+func _post_shift_note() -> String:
+	if _maintenance_notes.is_empty():
+		return "No maintenance notes. Suspicious, but accepted."
+	return _maintenance_notes[_maintenance_notes.size() - 1]
 
 
 func _make_result_panel_style(accent_color: Color) -> StyleBoxFlat:
@@ -450,6 +497,128 @@ func _force_event_for_development(event_type: int) -> bool:
 		action_feedback_label.text = "DEV EVENT BLOCKED"
 		audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
 	return true
+
+
+func _update_maintenance_incidents(delta_seconds: float) -> void:
+	if not _leak_started and facility_state.elapsed_time >= AC_LEAK_START_SECONDS:
+		_start_ac_leak()
+
+	if _ac_leak_active:
+		facility_state.apply_ac_leak_over_server(delta_seconds)
+
+	if _tape_failure_time > 0.0 and facility_state.elapsed_time >= _tape_failure_time:
+		_trigger_tape_failure()
+
+	if _tape_failure_alarm_active:
+		_tape_failure_alarm_remaining = maxf(_tape_failure_alarm_remaining - maxf(delta_seconds, 0.0), 0.0)
+		if is_zero_approx(_tape_failure_alarm_remaining):
+			_tape_failure_alarm_active = false
+			alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
+				TAPE_FAILURE_EVENT_ID,
+				"TAPE PATCH FAILED",
+				"SERVER RACK",
+				"danger"
+			))
+
+	if maintenance_desk_controller != null:
+		maintenance_desk_controller.set_bucket_available(_ac_leak_active)
+
+
+func _start_ac_leak() -> void:
+	_leak_started = true
+	_ac_leak_active = true
+	_ac_leak_alarm_active = true
+	_events_encountered += 1
+	_maintenance_notes.append("AC drip over server rack detected.")
+	alarm_feed_controller.raise_alarm(_maintenance_alarm_data(
+		AC_LEAK_EVENT_ID,
+		"AC DRIP OVER SERVER",
+		"MANAGER AC",
+		"warning"
+	))
+	maintenance_desk_controller.set_status("DRIP OVER SERVER", true)
+	audio_feedback_controller.play(AudioFeedbackController.Cue.WARNING_ALARM)
+
+
+func _patch_ac_leak_with_tape() -> void:
+	_ac_leak_active = false
+	_duct_tape_uses += 1
+	_total_interventions_used += 1
+	_tape_failure_time = facility_state.elapsed_time + TAPE_PATCH_DELAY_SECONDS
+	_maintenance_notes.append("Duct tape used on AC drip. Temporary victory logged.")
+	if _ac_leak_alarm_active:
+		_ac_leak_alarm_active = false
+		alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
+			AC_LEAK_EVENT_ID,
+			"AC DRIP OVER SERVER",
+			"MANAGER AC",
+			"warning"
+		))
+	maintenance_desk_controller.set_status("TAPE HOLDING... FOR NOW", false)
+	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
+
+
+func _catch_ac_leak_with_bucket() -> void:
+	_ac_leak_active = false
+	_bucket_uses += 1
+	_total_interventions_used += 1
+	_maintenance_notes.append("Bucket placed under AC drip. A rare legal solution.")
+	if _ac_leak_alarm_active:
+		_ac_leak_alarm_active = false
+		alarm_feed_controller.resolve_alarm(_maintenance_alarm_data(
+			AC_LEAK_EVENT_ID,
+			"AC DRIP OVER SERVER",
+			"MANAGER AC",
+			"warning"
+		))
+	maintenance_desk_controller.set_status("BUCKET HOLDING DRIP", false)
+	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
+
+
+func _trigger_tape_failure() -> void:
+	_tape_failure_time = -1.0
+	_tape_failure_alarm_active = true
+	_tape_failure_alarm_remaining = TAPE_FAILURE_ALARM_SECONDS
+	_events_encountered += 1
+	facility_state.apply_bad_tape_failure()
+	_maintenance_notes.append("Duct tape gave up and blamed humidity.")
+	alarm_feed_controller.raise_alarm(_maintenance_alarm_data(
+		TAPE_FAILURE_EVENT_ID,
+		"TAPE PATCH FAILED",
+		"SERVER RACK",
+		"danger"
+	))
+	maintenance_desk_controller.set_status("TAPE FAILED", true)
+	audio_feedback_controller.play(AudioFeedbackController.Cue.CRITICAL_ALARM)
+
+
+func _maintenance_alarm_data(event_id: int, title: String, source: String, severity: String) -> Dictionary:
+	return {
+		"id": event_id,
+		"title": title,
+		"source": source,
+		"elapsed_time": facility_state.elapsed_time,
+		"severity": severity,
+	}
+
+
+func _on_maintenance_tool_used(tool_id: int) -> void:
+	if facility_state.is_finished():
+		return
+	match tool_id:
+		MaintenanceDeskController.Tool.DUCT_TAPE:
+			if _ac_leak_active:
+				_patch_ac_leak_with_tape()
+			else:
+				action_feedback_label.text = "NOTHING TO TAPE YET"
+				audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
+		MaintenanceDeskController.Tool.BUCKET:
+			if _ac_leak_active:
+				_catch_ac_leak_with_bucket()
+			else:
+				action_feedback_label.text = "NO DRIP TO CATCH"
+				audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_REJECTED)
+	_update_ui()
 
 
 func _update_ui() -> void:

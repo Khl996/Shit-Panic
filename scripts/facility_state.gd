@@ -61,6 +61,12 @@ const PRESSURE_SPIKE_PRESSURE_DELTA: float = 14.0
 const PRESSURE_SPIKE_PRESSURE_PER_SECOND: float = 0.7
 const POWER_SURGE_POWER_DELTA: float = 15.0
 const POWER_SURGE_POWER_PER_SECOND: float = 0.8
+const AC_LEAK_TEMPERATURE_PER_SECOND: float = 0.55
+const AC_LEAK_POWER_PER_SECOND: float = 0.22
+const AC_LEAK_INTEGRITY_DRAIN_PER_SECOND: float = 0.08
+const TAPE_FAILURE_TEMPERATURE_DELTA: float = 4.0
+const TAPE_FAILURE_POWER_DELTA: float = 8.0
+const TAPE_FAILURE_INTEGRITY_DELTA: float = -2.0
 
 const SYSTEM_TEMPERATURE: int = 0
 const SYSTEM_PRESSURE: int = 1
@@ -320,6 +326,27 @@ func apply_sensor_glitch(system_id: int) -> void:
 
 func clear_sensor_glitches() -> void:
 	_sensor_glitch_system = -1
+
+
+func apply_ac_leak_over_server(delta_seconds: float) -> void:
+	var safe_delta: float = maxf(delta_seconds, 0.0)
+	_temperature_offset += AC_LEAK_TEMPERATURE_PER_SECOND * safe_delta
+	_power_load_offset += AC_LEAK_POWER_PER_SECOND * safe_delta
+	integrity = clampf(integrity - (AC_LEAK_INTEGRITY_DRAIN_PER_SECOND * safe_delta), MIN_VALUE, MAX_VALUE)
+	_update_system_values(elapsed_time)
+	_update_panic_level()
+	if integrity <= MIN_VALUE:
+		round_state = RoundState.LOST
+
+
+func apply_bad_tape_failure() -> void:
+	_temperature_offset += TAPE_FAILURE_TEMPERATURE_DELTA
+	_power_load_offset += TAPE_FAILURE_POWER_DELTA
+	integrity = clampf(integrity + TAPE_FAILURE_INTEGRITY_DELTA, MIN_VALUE, MAX_VALUE)
+	_update_system_values(elapsed_time)
+	_update_panic_level()
+	if integrity <= MIN_VALUE:
+		round_state = RoundState.LOST
 
 
 func _update_system_values(time_seconds: float) -> void:

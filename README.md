@@ -49,6 +49,11 @@ Engine requirement: Godot 4 Standard.
 - Restrained panic visual feedback.
 - Procedural local audio cues.
 - Development-only validation controls behind `development_controls_enabled`.
+- Maintenance Desk tool tray.
+- AC drip over server incident.
+- Duct tape quick patch with delayed failure risk.
+- Bucket safe response for the first leak incident.
+- Post-shift report lines for maintenance tools.
 - Permanent project rules in `AGENTS.md`.
 - Godot-appropriate `.gitignore`.
 

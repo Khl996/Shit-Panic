@@ -17,8 +17,8 @@
 - Never continue automatically.
 - Prefer typed GDScript.
 - Do not use C# or Godot .NET.
-- Do not add plugins or external dependencies.
-- Do not use network access or downloads.
+- Do not add plugins or editor-extension dependencies.
+- Network access and downloads are limited to fetching documented CC0 or public-domain art/audio assets; no other online use.
 - Do not add Autoloads unless explicitly approved.
 - Do not add backend, analytics, telemetry, accounts, or online services.
 - Do not create architecture for unapproved future features.
@@ -37,13 +37,13 @@
 ## Product Constraints
 
 - Single-player.
-- One-screen panic console.
+- Single-screen top-down maintenance room (the one-screen panic console was the early prototype and has been superseded).
 - Saudi Arabic in-game interface by default.
 - Arabic planning and discussion are allowed.
 - English project names, key labels, and internal identifiers are allowed when useful.
-- No 3D in the prototype.
+- 2D only. No 3D.
 - No multiplayer.
-- No external assets in early milestones.
+- External art/audio assets are allowed only when CC0 or public-domain, with the source and license recorded in `assets/CREDITS.md`. Prefer in-engine procedural art when it reaches the needed quality.
 - Do not let the interface resemble a SaaS dashboard.
 - Readability must remain intact during visual panic effects.
 

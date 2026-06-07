@@ -48,6 +48,18 @@ Completed locally on the feature branch:
 - Opening cinematic (`_build_intro_overlay` + `_play_intro_cinematic`) fades a "01:30 صباحاً — استلام المناوبة" title in/out over ~3 s while pausing the simulation; uses a `Tween` chain for sequence + parallel fade.
 - Result screen pops in with a `Tween` that scales the panel from a squashed 5 % height to 100 % with `TRANS_BACK` ease and fades alpha from 0 to 1 over 0.45 s, then focuses the retry button.
 
+## Milestone 8 — Industrial Rebuild (visual overhaul)
+
+- `AGENTS.md` was updated with the user's explicit permission: external CC0 / public-domain assets are now allowed when recorded in `assets/CREDITS.md`, the "one-screen panic console" constraint is marked superseded by the top-down room, and the network rule is narrowed to "downloads limited to documented CC0 assets". `assets/CREDITS.md` was created and currently lists no external assets — all art and audio remain procedural.
+- The user's direction: the wooden floor felt depressing and the server room did not read as a server room; they asked for a stronger, more realistic visual level and gave broad freedom to redesign. After testing, in-engine downloads of Kenney packs proved unreliable (protected behind itch.io/JS), so this milestone delivers the jump with procedural shaders + real 2D lighting under full control. Bringing in CC0/AI sprite assets is deferred to a possible M9 if the procedural result is not enough.
+- New `shaders/concrete_floor.gdshader`: a `canvas_item` shader with value-noise FBM concrete, tile grout grid, per-tile shade variance, dirt stains, and a yellow-black hazard band at `hazard_x` (server-room threshold). Applied via a `ShaderMaterial` on a new `FloorShader` ColorRect at `z_index = -20`.
+- New `scripts/lighting_rig.gd` (`Lighting` node): builds a `CanvasModulate` (cool night tint `0.52, 0.54, 0.66`) plus seven `PointLight2D` fixtures sharing one procedurally generated radial `GradientTexture2D`. Three ceiling fluorescents flicker via `_process` (slow sine + buzz + occasional dip). HUD is on a separate `CanvasLayer`, so it is unaffected by the tint and lights.
+- Shadows: chose painted blob shadows under furniture over `LightOccluder2D` to keep the look clean and low-risk; the occluder task was intentionally folded into existing per-object shadows.
+- `room_visuals.gd` fully rewritten: no longer paints the floor (the shader does). Now draws concrete walls with cinder-block seams, grime speckles, ceiling pipes with brackets, a left-wall breaker panel, Arabic safety signs, wall outlets, and the server-room partition + cooler floor tint. `z_index = -10`.
+- `server_leak_object.gd` rebuilt: three server racks (`_draw_rack`) side by side with mounted units, vent slits, LCD screens, status LEDs, and spinning fan grilles. The centre rack sits under the AC box and is the damaged one — its screens/LEDs turn amber while leaking and red after tape failure. Particle, puddle, slip, and state logic are preserved; offsets were retuned for the new layout.
+- `desk_console_object.gd` rebuilt into a workstation: 3/4-view CRT with scrolling terminal bars, a side oscilloscope screen, keyboard, mouse, steaming mug, a stack of papers, and a desk lamp that paints a warm light pool. The tool rack was left as-is for now.
+- Renderer note: the project uses `gl_compatibility`. 2D lights, `CanvasModulate`, and canvas-item shaders are supported there. Light/CanvasModulate balance (the `NIGHT_TINT` value and per-light `energy`) is the most likely thing to need runtime tuning — readability must stay intact per the project rules.
+
 The user manually reported one Godot parse issue after Epic 1 implementation. It was fixed in:
 
 `a9e315d fix: use Godot control text direction enums`

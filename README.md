@@ -2,7 +2,7 @@
 
 Shift Panic: Manual Override is a single-player Godot prototype about surviving a late-night maintenance shift in a mysterious building. The current branch builds a local vertical slice with live systems, readable disasters, intervention choices, maintenance tools, win/loss, retry, panic feedback, and procedural audio cues.
 
-Current status: `Milestone 7 - الإحساس / Game Feel` pending manual Godot runtime validation.
+Current status: `Milestone 8 - إعادة البناء الصناعي / Industrial Rebuild` pending manual Godot runtime validation.
 
 Engine requirement: Godot 4 Standard.
 
@@ -87,6 +87,12 @@ Engine requirement: Godot 4 Standard.
 - Layered procedural audio: button clicks, alarms, win and loss now mix fundamental + harmonic frequencies, plus new drip, slip, and clock tick cues.
 - Opening cinematic fades in "01:30 صباحاً — استلام المناوبة" with a clock tick before play starts.
 - Result screen springs in with a back-eased scale and modulate tween for a printed-paper feel.
+- Procedural industrial concrete floor shader with tile grout, mottling, stains, and a yellow-black hazard stripe at the server-room threshold (replaces the flat wooden planks).
+- Real 2D lighting: a cool-night CanvasModulate plus PointLight2D fixtures — flickering ceiling fluorescents, a warm desk lamp, cold server-room glow, a tool-rack pool of light, and a dim red over the manager door.
+- Concrete walls with cinder-block seams, grime speckles, horizontal pipes with brackets, a metal breaker panel, Arabic safety signs, and wall outlets.
+- Server room rebuilt as three believable server racks: mounted units, vent slits, small LCD screens, status LEDs, spinning fan grilles, and an AC box overhead; the damaged centre rack reads red/amber under the leak.
+- Console upgraded into a workstation: chunky CRT with scrolling terminal text, a side oscilloscope monitor, keyboard, mouse, coffee mug with steam, scattered papers, and a desk lamp casting a warm pool of light.
+- Project rules in `AGENTS.md` updated to allow documented CC0 / public-domain external assets; `assets/CREDITS.md` tracks them (currently none — all art and audio remain procedural).
 
 ## Not Implemented Yet
 

@@ -1,134 +1,162 @@
 extends Node2D
 
+# Walls, server-room shell and fixed industrial detailing. The floor itself is
+# rendered by the concrete_floor shader on the FloorShader ColorRect beneath
+# this node, so nothing here paints the open floor.
+
 const ROOM_WIDTH: float = 1280.0
 const ROOM_HEIGHT: float = 720.0
 const WALL_THICKNESS: float = 30.0
-const FLOOR_BASE: Color = Color(0.227451, 0.156863, 0.0980392, 1.0)
-const FLOOR_PLANK_LIGHT: Color = Color(0.290196, 0.196078, 0.121569, 1.0)
-const FLOOR_PLANK_DARK: Color = Color(0.180392, 0.121569, 0.0784314, 1.0)
-const PLANK_LINE: Color = Color(0.0784314, 0.0509804, 0.0313726, 0.85)
-const GRAIN_LIGHT: Color = Color(0.345098, 0.235294, 0.156863, 0.42)
-const GRAIN_DARK: Color = Color(0.0509804, 0.0313726, 0.0156863, 0.45)
-const WALL_BASE: Color = Color(0.388235, 0.262745, 0.156863, 1.0)
-const WALL_TRIM: Color = Color(0.580392, 0.419608, 0.243137, 1.0)
-const WALL_SHADOW: Color = Color(0.0901961, 0.0588235, 0.0392157, 0.85)
-const STAIN_COLOR: Color = Color(0.0823529, 0.0470588, 0.0235294, 0.4)
-const SERVER_ZONE: Color = Color(0.105882, 0.145098, 0.152941, 0.62)
-const SIGN_BG: Color = Color(0.937255, 0.882353, 0.733333, 0.95)
-const SIGN_TEXT: Color = Color(0.180392, 0.117647, 0.0784314, 1.0)
-const PLANK_HEIGHT: float = 92.0
-const GRAIN_SEED: int = 4477
+
+const WALL_CONCRETE: Color = Color(0.223529, 0.235294, 0.262745, 1.0)
+const WALL_CONCRETE_DARK: Color = Color(0.152941, 0.164706, 0.188235, 1.0)
+const WALL_BLOCK_LINE: Color = Color(0.117647, 0.125490, 0.145098, 0.85)
+const WALL_TRIM_METAL: Color = Color(0.380392, 0.403922, 0.443137, 1.0)
+const WALL_HIGHLIGHT: Color = Color(0.298039, 0.313726, 0.349020, 1.0)
+const INNER_SHADOW: Color = Color(0.0, 0.0, 0.0, 0.40)
+const PIPE_BODY: Color = Color(0.337255, 0.356863, 0.388235, 1.0)
+const PIPE_SHADE: Color = Color(0.184314, 0.196078, 0.219608, 1.0)
+const PIPE_HIGHLIGHT: Color = Color(0.521569, 0.549020, 0.592157, 1.0)
+const PANEL_METAL: Color = Color(0.270588, 0.286275, 0.317647, 1.0)
+const PANEL_DARK: Color = Color(0.152941, 0.164706, 0.184314, 1.0)
+const SERVER_ZONE: Color = Color(0.078431, 0.105882, 0.133333, 0.55)
+const HAZARD_YELLOW: Color = Color(0.847059, 0.658824, 0.180392, 1.0)
+const SIGN_BG: Color = Color(0.901961, 0.847059, 0.690196, 0.96)
+const SIGN_TEXT: Color = Color(0.137255, 0.105882, 0.070588, 1.0)
+const WARN_SIGN_BG: Color = Color(0.831373, 0.231373, 0.180392, 0.95)
+const WARN_SIGN_TEXT: Color = Color(0.964706, 0.945098, 0.894118, 1.0)
+const DETAIL_SEED: int = 9931
 
 
 func _ready() -> void:
+	z_index = -10
 	queue_redraw()
 
 
 func _draw() -> void:
-	_draw_floor()
-	_draw_server_room()
-	_draw_floor_stains()
+	_draw_server_zone()
 	_draw_walls()
+	_draw_wall_pipes()
+	_draw_electrical_panel()
+	_draw_safety_signs()
+	_draw_floor_outlets()
 
 
-func _draw_floor() -> void:
-	draw_rect(Rect2(Vector2.ZERO, Vector2(ROOM_WIDTH, ROOM_HEIGHT)), FLOOR_BASE, true)
-	var plank_index: int = 0
-	var y: float = WALL_THICKNESS
-	while y < ROOM_HEIGHT - WALL_THICKNESS:
-		var plank_color: Color = FLOOR_PLANK_LIGHT if plank_index % 2 == 0 else FLOOR_PLANK_DARK
-		var plank_rect: Rect2 = Rect2(
-			Vector2(WALL_THICKNESS, y),
-			Vector2(ROOM_WIDTH - WALL_THICKNESS * 2.0, minf(PLANK_HEIGHT, ROOM_HEIGHT - WALL_THICKNESS - y))
-		)
-		draw_rect(plank_rect, plank_color, true)
-		draw_line(
-			Vector2(plank_rect.position.x, plank_rect.position.y),
-			Vector2(plank_rect.position.x + plank_rect.size.x, plank_rect.position.y),
-			PLANK_LINE,
-			1.0,
-			true
-		)
-		_draw_plank_grain(plank_rect, plank_index)
-		plank_index += 1
-		y += PLANK_HEIGHT
-
-
-func _draw_plank_grain(plank_rect: Rect2, plank_index: int) -> void:
-	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
-	rng.seed = GRAIN_SEED + plank_index
-	var grain_count: int = 18
-	for index: int in range(grain_count):
-		var grain_y: float = plank_rect.position.y + rng.randf_range(4.0, plank_rect.size.y - 4.0)
-		var grain_x_start: float = plank_rect.position.x + rng.randf_range(0.0, plank_rect.size.x * 0.3)
-		var grain_x_end: float = plank_rect.position.x + rng.randf_range(plank_rect.size.x * 0.7, plank_rect.size.x)
-		var sway: float = rng.randf_range(-3.0, 3.0)
-		var color: Color = GRAIN_LIGHT if index % 2 == 0 else GRAIN_DARK
-		var thickness: float = rng.randf_range(0.5, 1.3)
-		draw_line(Vector2(grain_x_start, grain_y), Vector2((grain_x_start + grain_x_end) * 0.5, grain_y + sway), color, thickness, true)
-		draw_line(Vector2((grain_x_start + grain_x_end) * 0.5, grain_y + sway), Vector2(grain_x_end, grain_y + sway * 0.4), color, thickness, true)
-
-
-func _draw_floor_stains() -> void:
-	var stains: Array[Vector3] = [
-		Vector3(320.0, 280.0, 42.0),
-		Vector3(880.0, 450.0, 36.0),
-		Vector3(640.0, 600.0, 28.0),
-	]
-	for stain: Vector3 in stains:
-		var center: Vector2 = Vector2(stain.x, stain.y)
-		var radius: float = stain.z
-		draw_circle(center, radius, STAIN_COLOR)
-		draw_arc(center, radius * 0.92, 0.0, TAU, 36, Color(STAIN_COLOR.r, STAIN_COLOR.g, STAIN_COLOR.b, 0.55), 1.5, true)
-		draw_arc(center, radius * 0.55, 0.0, TAU, 24, Color(STAIN_COLOR.r, STAIN_COLOR.g, STAIN_COLOR.b, 0.5), 1.0, true)
-
-
-func _draw_server_room() -> void:
-	# Server room floor zone — slightly cooler tile to feel like a different room
-	draw_rect(Rect2(Vector2(880.0, 170.0), Vector2(330.0, 420.0)), SERVER_ZONE, true)
-	# Partition wall framing the doorway
-	var wall_color: Color = Color(0.243137, 0.168627, 0.098039, 0.95)
-	var trim_color: Color = Color(0.580392, 0.419608, 0.243137, 1.0)
-	draw_rect(Rect2(Vector2(860.0, 156.0), Vector2(18.0, 150.0)), wall_color, true)
-	draw_rect(Rect2(Vector2(860.0, 452.0), Vector2(18.0, 156.0)), wall_color, true)
-	draw_line(Vector2(878.0, 306.0), Vector2(878.0, 452.0), trim_color, 3.0, true)
-	# Doorway shadow on the floor
-	draw_rect(Rect2(Vector2(862.0, 306.0), Vector2(16.0, 146.0)), Color(0.0, 0.0, 0.0, 0.45), true)
-	# Bureaucratic sign above the doorway
-	_draw_sign(Vector2(1038.0, 188.0), Vector2(210.0, 26.0), "غرفة السيرفر — لا تحط مويه هنا")
-
-
-
-
-
-func _draw_sign(center: Vector2, size: Vector2, text: String) -> void:
-	var rect: Rect2 = Rect2(center - size * 0.5, size)
-	draw_rect(Rect2(rect.position + Vector2(2.0, 2.0), rect.size), Color(0.0, 0.0, 0.0, 0.35), true)
-	draw_rect(rect, SIGN_BG, true)
-	draw_rect(rect, SIGN_TEXT, false, 1.5)
-	var font: Font = ThemeDB.fallback_font
-	var font_size: int = 13
-	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
-	draw_string(font, rect.position + Vector2((rect.size.x - text_size.x) * 0.5, 18.0), text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, SIGN_TEXT)
+func _draw_server_zone() -> void:
+	# Cooler tile tint over the shader floor so the server room reads as its own space.
+	draw_rect(Rect2(Vector2(880.0, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS - 880.0, ROOM_HEIGHT - WALL_THICKNESS * 2.0)), SERVER_ZONE, true)
+	# Partition wall framing the doorway on the server-room side.
+	var wall_color: Color = WALL_CONCRETE_DARK
+	draw_rect(Rect2(Vector2(862.0, WALL_THICKNESS), Vector2(20.0, 150.0)), wall_color, true)
+	draw_rect(Rect2(Vector2(862.0, 452.0), Vector2(20.0, ROOM_HEIGHT - WALL_THICKNESS - 452.0)), wall_color, true)
+	draw_rect(Rect2(Vector2(862.0, WALL_THICKNESS), Vector2(20.0, 150.0)), WALL_HIGHLIGHT, false, 1.0)
+	draw_rect(Rect2(Vector2(862.0, 452.0), Vector2(20.0, ROOM_HEIGHT - WALL_THICKNESS - 452.0)), WALL_HIGHLIGHT, false, 1.0)
+	# Doorway threshold shadow.
+	draw_rect(Rect2(Vector2(864.0, 180.0), Vector2(16.0, 272.0)), Color(0.0, 0.0, 0.0, 0.32), true)
 
 
 func _draw_walls() -> void:
-	# Top
-	draw_rect(Rect2(Vector2(0.0, 0.0), Vector2(ROOM_WIDTH, WALL_THICKNESS)), WALL_BASE, true)
-	# Bottom
-	draw_rect(Rect2(Vector2(0.0, ROOM_HEIGHT - WALL_THICKNESS), Vector2(ROOM_WIDTH, WALL_THICKNESS)), WALL_BASE, true)
-	# Left
-	draw_rect(Rect2(Vector2(0.0, 0.0), Vector2(WALL_THICKNESS, ROOM_HEIGHT)), WALL_BASE, true)
-	# Right
-	draw_rect(Rect2(Vector2(ROOM_WIDTH - WALL_THICKNESS, 0.0), Vector2(WALL_THICKNESS, ROOM_HEIGHT)), WALL_BASE, true)
-	# Inner wall trim line
-	draw_line(Vector2(WALL_THICKNESS, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS, WALL_THICKNESS), WALL_TRIM, 2.0, true)
-	draw_line(Vector2(WALL_THICKNESS, ROOM_HEIGHT - WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS, ROOM_HEIGHT - WALL_THICKNESS), WALL_TRIM, 2.0, true)
-	draw_line(Vector2(WALL_THICKNESS, WALL_THICKNESS), Vector2(WALL_THICKNESS, ROOM_HEIGHT - WALL_THICKNESS), WALL_TRIM, 2.0, true)
-	draw_line(Vector2(ROOM_WIDTH - WALL_THICKNESS, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS, ROOM_HEIGHT - WALL_THICKNESS), WALL_TRIM, 2.0, true)
-	# Soft inner shadow
-	var shadow_size: float = 6.0
-	draw_rect(Rect2(Vector2(WALL_THICKNESS, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS * 2.0, shadow_size)), WALL_SHADOW, true)
-	draw_rect(Rect2(Vector2(WALL_THICKNESS, WALL_THICKNESS), Vector2(shadow_size, ROOM_HEIGHT - WALL_THICKNESS * 2.0)), WALL_SHADOW, true)
-	draw_rect(Rect2(Vector2(ROOM_WIDTH - WALL_THICKNESS - shadow_size, WALL_THICKNESS), Vector2(shadow_size, ROOM_HEIGHT - WALL_THICKNESS * 2.0)), WALL_SHADOW, true)
-	draw_rect(Rect2(Vector2(WALL_THICKNESS, ROOM_HEIGHT - WALL_THICKNESS - shadow_size), Vector2(ROOM_WIDTH - WALL_THICKNESS * 2.0, shadow_size)), WALL_SHADOW, true)
+	var rects: Array[Rect2] = [
+		Rect2(Vector2(0.0, 0.0), Vector2(ROOM_WIDTH, WALL_THICKNESS)),
+		Rect2(Vector2(0.0, ROOM_HEIGHT - WALL_THICKNESS), Vector2(ROOM_WIDTH, WALL_THICKNESS)),
+		Rect2(Vector2(0.0, 0.0), Vector2(WALL_THICKNESS, ROOM_HEIGHT)),
+		Rect2(Vector2(ROOM_WIDTH - WALL_THICKNESS, 0.0), Vector2(WALL_THICKNESS, ROOM_HEIGHT)),
+	]
+	for wall_rect: Rect2 in rects:
+		draw_rect(wall_rect, WALL_CONCRETE, true)
+	_draw_wall_block_texture()
+	# Metal skirting trim on the inner edge.
+	var inner: Rect2 = Rect2(Vector2(WALL_THICKNESS, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS * 2.0, ROOM_HEIGHT - WALL_THICKNESS * 2.0))
+	draw_rect(inner, WALL_TRIM_METAL, false, 2.0)
+	# Soft inner shadow so the floor feels recessed.
+	var s: float = 7.0
+	draw_rect(Rect2(inner.position, Vector2(inner.size.x, s)), INNER_SHADOW, true)
+	draw_rect(Rect2(inner.position, Vector2(s, inner.size.y)), INNER_SHADOW, true)
+	draw_rect(Rect2(Vector2(inner.position.x + inner.size.x - s, inner.position.y), Vector2(s, inner.size.y)), INNER_SHADOW, true)
+	draw_rect(Rect2(Vector2(inner.position.x, inner.position.y + inner.size.y - s), Vector2(inner.size.x, s)), INNER_SHADOW, true)
+
+
+func _draw_wall_block_texture() -> void:
+	# Cinder-block seams along each wall band, plus a little grime variance.
+	var rng: RandomNumberGenerator = RandomNumberGenerator.new()
+	rng.seed = DETAIL_SEED
+	var block_w: float = 80.0
+	# Top + bottom horizontal walls
+	for band_top: float in [0.0, ROOM_HEIGHT - WALL_THICKNESS]:
+		var x: float = 0.0
+		while x < ROOM_WIDTH:
+			draw_line(Vector2(x, band_top), Vector2(x, band_top + WALL_THICKNESS), WALL_BLOCK_LINE, 1.0, true)
+			x += block_w
+		draw_line(Vector2(0.0, band_top + WALL_THICKNESS * 0.5), Vector2(ROOM_WIDTH, band_top + WALL_THICKNESS * 0.5), WALL_BLOCK_LINE, 1.0, true)
+	# Left + right vertical walls
+	for band_left: float in [0.0, ROOM_WIDTH - WALL_THICKNESS]:
+		var y: float = 0.0
+		while y < ROOM_HEIGHT:
+			draw_line(Vector2(band_left, y), Vector2(band_left + WALL_THICKNESS, y), WALL_BLOCK_LINE, 1.0, true)
+			y += block_w
+		draw_line(Vector2(band_left + WALL_THICKNESS * 0.5, 0.0), Vector2(band_left + WALL_THICKNESS * 0.5, ROOM_HEIGHT), WALL_BLOCK_LINE, 1.0, true)
+	# Grime speckles
+	for _i: int in range(120):
+		var gx: float = rng.randf_range(0.0, ROOM_WIDTH)
+		var gy: float = rng.randf_range(0.0, ROOM_HEIGHT)
+		if gx > WALL_THICKNESS and gx < ROOM_WIDTH - WALL_THICKNESS and gy > WALL_THICKNESS and gy < ROOM_HEIGHT - WALL_THICKNESS:
+			continue
+		draw_circle(Vector2(gx, gy), rng.randf_range(0.6, 1.8), Color(0.0, 0.0, 0.0, rng.randf_range(0.10, 0.30)))
+
+
+func _draw_wall_pipes() -> void:
+	# Two horizontal pipes running along the top wall.
+	for pipe_y: float in [9.0, 19.0]:
+		draw_line(Vector2(40.0, pipe_y), Vector2(820.0, pipe_y), PIPE_SHADE, 6.0, true)
+		draw_line(Vector2(40.0, pipe_y - 1.0), Vector2(820.0, pipe_y - 1.0), PIPE_BODY, 4.0, true)
+		draw_line(Vector2(40.0, pipe_y - 2.0), Vector2(820.0, pipe_y - 2.0), PIPE_HIGHLIGHT, 1.0, true)
+		# Brackets
+		var bx: float = 80.0
+		while bx < 820.0:
+			draw_rect(Rect2(Vector2(bx - 3.0, pipe_y - 5.0), Vector2(6.0, 10.0)), PIPE_SHADE, true)
+			bx += 150.0
+	# Vertical drop pipe down the right wall toward the server room.
+	draw_line(Vector2(ROOM_WIDTH - 14.0, 30.0), Vector2(ROOM_WIDTH - 14.0, 180.0), PIPE_SHADE, 7.0, true)
+	draw_line(Vector2(ROOM_WIDTH - 15.0, 30.0), Vector2(ROOM_WIDTH - 15.0, 180.0), PIPE_BODY, 4.0, true)
+
+
+func _draw_electrical_panel() -> void:
+	# Grey metal breaker box on the left wall.
+	var box: Rect2 = Rect2(Vector2(6.0, 250.0), Vector2(20.0, 110.0))
+	draw_rect(Rect2(box.position + Vector2(2.0, 3.0), box.size), Color(0.0, 0.0, 0.0, 0.4), true)
+	draw_rect(box, PANEL_METAL, true)
+	draw_rect(box, PANEL_DARK, false, 1.5)
+	# Breaker rows
+	for row: int in range(5):
+		var ry: float = box.position.y + 10.0 + float(row) * 19.0
+		draw_rect(Rect2(Vector2(box.position.x + 4.0, ry), Vector2(12.0, 12.0)), PANEL_DARK, true)
+		var lit: Color = HAZARD_YELLOW if row % 2 == 0 else Color(0.345098, 0.572549, 0.443137, 1.0)
+		draw_rect(Rect2(Vector2(box.position.x + 6.0, ry + 3.0), Vector2(4.0, 6.0)), lit, true)
+
+
+func _draw_safety_signs() -> void:
+	# Server-room sign above the doorway.
+	_draw_sign(Vector2(1050.0, 150.0), Vector2(200.0, 30.0), "غرفة السيرفر", SIGN_BG, SIGN_TEXT)
+	# Warning sign near the server room.
+	_draw_sign(Vector2(1010.0, 600.0), Vector2(180.0, 28.0), "ممنوع المياه قرب المعدات", WARN_SIGN_BG, WARN_SIGN_TEXT)
+	# Exit-style sign over the manager door (right wall, lower).
+	_draw_sign(Vector2(ROOM_WIDTH - 70.0, 466.0), Vector2(96.0, 24.0), "إدارة", SIGN_BG, SIGN_TEXT)
+
+
+func _draw_floor_outlets() -> void:
+	# A couple of wall power outlets for detail.
+	for outlet_pos: Vector2 in [Vector2(360.0, 40.0), Vector2(640.0, 40.0)]:
+		draw_rect(Rect2(outlet_pos - Vector2(7.0, 6.0), Vector2(14.0, 12.0)), PANEL_DARK, true)
+		draw_circle(outlet_pos + Vector2(-3.0, 0.0), 1.6, WALL_HIGHLIGHT)
+		draw_circle(outlet_pos + Vector2(3.0, 0.0), 1.6, WALL_HIGHLIGHT)
+
+
+func _draw_sign(center: Vector2, sign_size: Vector2, text: String, bg: Color, text_color: Color) -> void:
+	var rect: Rect2 = Rect2(center - sign_size * 0.5, sign_size)
+	draw_rect(Rect2(rect.position + Vector2(2.0, 3.0), rect.size), Color(0.0, 0.0, 0.0, 0.45), true)
+	draw_rect(rect, bg, true)
+	draw_rect(rect, text_color, false, 1.5)
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = 14
+	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
+	draw_string(font, rect.position + Vector2((rect.size.x - text_size.x) * 0.5, sign_size.y * 0.5 + float(font_size) * 0.35), text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, text_color)

@@ -8,28 +8,38 @@ enum LeakState {
 	TAPE_FAILED,
 }
 
-const RACK_SIZE: Vector2 = Vector2(150.0, 190.0)
-const RACK_BODY: Color = Color(0.105882, 0.121569, 0.133333, 1.0)
-const RACK_SIDE: Color = Color(0.047059, 0.058824, 0.070588, 1.0)
-const RACK_TRIM: Color = Color(0.243137, 0.317647, 0.313726, 1.0)
-const SERVER_LIGHT: Color = Color(0.411765, 0.717647, 0.682353, 1.0)
-const WARNING_COLOR: Color = Color(0.831373, 0.603922, 0.164706, 1.0)
-const DANGER_COLOR: Color = Color(0.788235, 0.294118, 0.258824, 1.0)
+const RACK_WIDTH: float = 84.0
+const RACK_HEIGHT: float = 200.0
+const RACK_SPACING: float = 120.0
+const RACK_TOP: float = -104.0
+const FRAME_DARK: Color = Color(0.082353, 0.090196, 0.105882, 1.0)
+const FRAME_METAL: Color = Color(0.196078, 0.215686, 0.243137, 1.0)
+const FRAME_EDGE: Color = Color(0.301961, 0.329412, 0.376471, 1.0)
+const UNIT_BODY: Color = Color(0.043137, 0.050980, 0.062745, 1.0)
+const UNIT_FACE: Color = Color(0.105882, 0.117647, 0.137255, 1.0)
+const VENT_COLOR: Color = Color(0.027451, 0.031373, 0.039216, 1.0)
+const SERVER_LIGHT: Color = Color(0.411765, 0.835294, 0.733333, 1.0)
+const SCREEN_GLOW: Color = Color(0.345098, 0.737255, 0.521569, 1.0)
+const WARNING_COLOR: Color = Color(0.949020, 0.694118, 0.231373, 1.0)
+const DANGER_COLOR: Color = Color(0.870588, 0.286275, 0.247059, 1.0)
 const WATER_COLOR: Color = Color(0.321569, 0.674510, 0.831373, 0.82)
 const WATER_DARK: Color = Color(0.125490, 0.309804, 0.447059, 0.55)
 const TAPE_COLOR: Color = Color(0.937255, 0.870588, 0.682353, 1.0)
 const BUCKET_COLOR: Color = Color(0.611765, 0.611765, 0.643137, 1.0)
 const PAPER_COLOR: Color = Color(0.937255, 0.882353, 0.733333, 1.0)
 const TEXT_COLOR: Color = Color(0.180392, 0.117647, 0.0784314, 1.0)
-const PUDDLE_CENTER_OFFSET: Vector2 = Vector2(0.0, 116.0)
+const AC_BODY: Color = Color(0.815686, 0.823529, 0.831373, 1.0)
+const AC_SHADE: Color = Color(0.560784, 0.572549, 0.592157, 1.0)
+const AC_DARK: Color = Color(0.349020, 0.356863, 0.372549, 1.0)
+const PUDDLE_CENTER_OFFSET: Vector2 = Vector2(0.0, 132.0)
 const PUDDLE_GROWTH_PER_SECOND: float = 16.0
 const PUDDLE_SHRINK_PER_SECOND: float = 38.0
-const PUDDLE_MAX_RADIUS: float = 78.0
+const PUDDLE_MAX_RADIUS: float = 82.0
 const PUDDLE_ASPECT: float = 0.42
 
 var state: int = LeakState.DRY
 var _time: float = 0.0
-var _label: String = "السيرفر"
+var _label: String = "غرفة السيرفر"
 var _drip_particles: GPUParticles2D
 var _splash_particles: GPUParticles2D
 var _puddle_radius: float = 0.0
@@ -45,8 +55,8 @@ func _ready() -> void:
 func _process(delta: float) -> void:
 	_time += delta
 	_update_puddle(delta)
-	if state != LeakState.DRY or _puddle_radius > 0.0:
-		queue_redraw()
+	# Racks animate continuously (fans, LED blinks), so always redraw.
+	queue_redraw()
 
 
 func _update_puddle(delta: float) -> void:
@@ -81,19 +91,195 @@ func set_state(new_state: int) -> void:
 	queue_redraw()
 
 
+func set_label(text: String) -> void:
+	_label = text
+	queue_redraw()
+
+
+func _draw() -> void:
+	_draw_growing_puddle()
+	# Side racks (healthy), then the centre rack (the damaged one under the AC).
+	_draw_rack(-RACK_SPACING, false)
+	_draw_rack(RACK_SPACING, false)
+	_draw_rack(0.0, true)
+	_draw_ac_unit()
+	_draw_state_overlay()
+	_draw_label()
+
+
+func _draw_rack(center_x: float, is_damaged: bool) -> void:
+	var origin: Vector2 = Vector2(center_x - RACK_WIDTH * 0.5, RACK_TOP)
+	# Cast shadow
+	draw_rect(Rect2(origin + Vector2(6.0, 10.0), Vector2(RACK_WIDTH, RACK_HEIGHT)), Color(0.0, 0.0, 0.0, 0.5), true)
+	# Outer frame
+	draw_rect(Rect2(origin, Vector2(RACK_WIDTH, RACK_HEIGHT)), FRAME_DARK, true)
+	draw_rect(Rect2(origin, Vector2(RACK_WIDTH, RACK_HEIGHT)), FRAME_METAL, false, 2.0)
+	# Side rails
+	draw_rect(Rect2(origin, Vector2(7.0, RACK_HEIGHT)), FRAME_METAL, true)
+	draw_rect(Rect2(origin + Vector2(RACK_WIDTH - 7.0, 0.0), Vector2(7.0, RACK_HEIGHT)), FRAME_METAL, true)
+	draw_line(origin + Vector2(2.0, 0.0), origin + Vector2(2.0, RACK_HEIGHT), FRAME_EDGE, 1.0, true)
+	# Mounted units
+	var unit_count: int = 7
+	var inner_left: float = origin.x + 9.0
+	var inner_width: float = RACK_WIDTH - 18.0
+	var unit_gap: float = 3.0
+	var unit_height: float = (RACK_HEIGHT - 20.0 - unit_gap * float(unit_count)) / float(unit_count)
+	for unit_index: int in range(unit_count):
+		var unit_y: float = origin.y + 10.0 + float(unit_index) * (unit_height + unit_gap)
+		_draw_rack_unit(Vector2(inner_left, unit_y), Vector2(inner_width, unit_height), unit_index, is_damaged)
+	# Fan grille at the bottom
+	var fan_center: Vector2 = Vector2(center_x, origin.y + RACK_HEIGHT - 6.0)
+	var spin: float = _time * (5.0 if not is_damaged else 1.5)
+	for blade: int in range(3):
+		var a: float = spin + float(blade) * (TAU / 3.0)
+		draw_line(fan_center, fan_center + Vector2(cos(a), sin(a)) * 5.0, FRAME_EDGE, 1.5, true)
+	draw_arc(fan_center, 6.0, 0.0, TAU, 16, FRAME_METAL, 1.2, true)
+
+
+func _draw_rack_unit(unit_pos: Vector2, unit_size: Vector2, unit_index: int, is_damaged: bool) -> void:
+	draw_rect(Rect2(unit_pos, unit_size), UNIT_BODY, true)
+	draw_rect(Rect2(unit_pos, unit_size), UNIT_FACE, false, 1.0)
+	# Some units carry a small LCD screen, others are vented blanks.
+	var has_screen: bool = (unit_index % 3) == 1
+	if has_screen:
+		var screen_rect: Rect2 = Rect2(unit_pos + Vector2(4.0, unit_size.y * 0.25), Vector2(unit_size.x * 0.4, unit_size.y * 0.5))
+		var glow: float = 0.6 + 0.4 * sin(_time * 3.0 + float(unit_index))
+		var screen_color: Color = SCREEN_GLOW
+		if is_damaged and (state == LeakState.LEAKING or state == LeakState.TAPE_FAILED):
+			screen_color = DANGER_COLOR if state == LeakState.TAPE_FAILED else WARNING_COLOR
+		draw_rect(screen_rect, Color(screen_color.r, screen_color.g, screen_color.b, 0.30 + glow * 0.4), true)
+		# A couple of text-line bars on the screen
+		draw_line(screen_rect.position + Vector2(2.0, 3.0), screen_rect.position + Vector2(screen_rect.size.x - 3.0, 3.0), Color(screen_color.r, screen_color.g, screen_color.b, 0.8), 1.0, true)
+		draw_line(screen_rect.position + Vector2(2.0, 6.0), screen_rect.position + Vector2(screen_rect.size.x - 6.0, 6.0), Color(screen_color.r, screen_color.g, screen_color.b, 0.6), 1.0, true)
+	else:
+		# Vent slits
+		for slit: int in range(3):
+			var sy: float = unit_pos.y + 3.0 + float(slit) * (unit_size.y - 6.0) / 2.0
+			draw_line(Vector2(unit_pos.x + 4.0, sy), Vector2(unit_pos.x + unit_size.x * 0.55, sy), VENT_COLOR, 1.5, true)
+	# Status LED on the right of every unit
+	var blink: float = (sin(_time * 4.0 + float(unit_index) * 1.3) + 1.0) * 0.5
+	var led: Color = SERVER_LIGHT
+	if is_damaged and state == LeakState.LEAKING:
+		led = SERVER_LIGHT.lerp(WARNING_COLOR, blink)
+	elif is_damaged and state == LeakState.TAPE_FAILED:
+		led = DANGER_COLOR
+	else:
+		led = SERVER_LIGHT.lerp(Color(0.2, 0.3, 0.3, 1.0), 1.0 - blink)
+	draw_circle(unit_pos + Vector2(unit_size.x - 6.0, unit_size.y * 0.5), 2.4, led)
+
+
+func _draw_ac_unit() -> void:
+	# Wall AC box mounted above the centre (damaged) rack.
+	var unit_rect: Rect2 = Rect2(Vector2(-70.0, RACK_TOP - 44.0), Vector2(140.0, 36.0))
+	draw_rect(Rect2(unit_rect.position + Vector2(3.0, 5.0), unit_rect.size), Color(0.0, 0.0, 0.0, 0.4), true)
+	draw_rect(unit_rect, AC_BODY, true)
+	draw_rect(Rect2(unit_rect.position, Vector2(unit_rect.size.x, 6.0)), AC_SHADE, true)
+	draw_rect(unit_rect, AC_DARK, false, 2.0)
+	# Louvers
+	for index: int in range(6):
+		var x: float = unit_rect.position.x + 14.0 + float(index) * 20.0
+		draw_line(Vector2(x, unit_rect.position.y + 10.0), Vector2(x + 10.0, unit_rect.position.y + 26.0), AC_DARK, 2.0, true)
+	# A wet stain seam under the AC when leaking
+	if state == LeakState.LEAKING or state == LeakState.TAPE_FAILED:
+		draw_rect(Rect2(Vector2(-30.0, unit_rect.position.y + unit_rect.size.y - 2.0), Vector2(60.0, 4.0)), Color(WATER_COLOR.r, WATER_COLOR.g, WATER_COLOR.b, 0.6), true)
+
+
+func _draw_growing_puddle() -> void:
+	if _puddle_radius < 1.0:
+		return
+	var center: Vector2 = PUDDLE_CENTER_OFFSET
+	var radii: Vector2 = Vector2(_puddle_radius, _puddle_radius * PUDDLE_ASPECT)
+	_draw_ellipse(center + Vector2(3.0, 4.0), radii * 1.02, Color(0.0, 0.0, 0.0, 0.30))
+	_draw_ellipse(center, radii, WATER_DARK)
+	_draw_ellipse(center + Vector2(-_puddle_radius * 0.18, -_puddle_radius * 0.07), radii * 0.55, WATER_COLOR)
+	_draw_ellipse(center + Vector2(-_puddle_radius * 0.3, -_puddle_radius * 0.12), radii * 0.28, Color(0.823529, 0.929412, 0.952941, 0.55))
+
+
+func _draw_state_overlay() -> void:
+	match state:
+		LeakState.LEAKING:
+			_draw_warning_burst("مويه على السيرفر!")
+		LeakState.TAPE_PATCHED:
+			_draw_tape_patch(false)
+		LeakState.BUCKET_PLACED:
+			_draw_bucket()
+		LeakState.TAPE_FAILED:
+			_draw_tape_patch(true)
+			_draw_warning_burst("الشطرطون خان!")
+
+
+func _draw_tape_patch(failed: bool) -> void:
+	var center: Vector2 = Vector2(0.0, RACK_TOP - 6.0)
+	var angle: float = -0.12 if not failed else 0.22
+	var transform: Transform2D = Transform2D(angle, center)
+	draw_set_transform_matrix(transform)
+	var rect: Rect2 = Rect2(Vector2(-52.0, -9.0), Vector2(104.0, 18.0))
+	draw_rect(rect, TAPE_COLOR, true)
+	draw_rect(rect, Color(0.549020, 0.466667, 0.270588, 1.0), false, 1.6)
+	if failed:
+		draw_line(Vector2(-34.0, -9.0), Vector2(-16.0, 9.0), DANGER_COLOR, 3.0, true)
+		draw_line(Vector2(20.0, -9.0), Vector2(36.0, 9.0), DANGER_COLOR, 3.0, true)
+	draw_set_transform_matrix(Transform2D.IDENTITY)
+
+
+func _draw_bucket() -> void:
+	var center: Vector2 = PUDDLE_CENTER_OFFSET + Vector2(0.0, -6.0)
+	var top_left: Vector2 = center + Vector2(-24.0, -18.0)
+	var top_right: Vector2 = center + Vector2(24.0, -18.0)
+	var bottom_left: Vector2 = center + Vector2(-16.0, 18.0)
+	var bottom_right: Vector2 = center + Vector2(16.0, 18.0)
+	draw_colored_polygon(PackedVector2Array([top_left + Vector2(3, 4), top_right + Vector2(3, 4), bottom_right + Vector2(3, 4), bottom_left + Vector2(3, 4)]), Color(0, 0, 0, 0.4))
+	draw_colored_polygon(PackedVector2Array([top_left, top_right, bottom_right, bottom_left]), BUCKET_COLOR)
+	draw_line(top_left, top_right, Color(0.388235, 0.388235, 0.423529, 1), 3.0, true)
+	draw_line(bottom_left, bottom_right, Color(0.388235, 0.388235, 0.423529, 1), 2.0, true)
+	draw_arc(center + Vector2(0.0, -18.0), 19.0, PI * 1.05, PI * 1.95, 16, Color(0.388235, 0.388235, 0.423529, 1), 1.8, true)
+
+
+func _draw_warning_burst(text: String) -> void:
+	var pulse: float = (sin(_time * 9.0) + 1.0) * 0.5
+	var rect_size: Vector2 = Vector2(180.0 + pulse * 8.0, 32.0 + pulse * 4.0)
+	var rect: Rect2 = Rect2(Vector2(-rect_size.x * 0.5, RACK_TOP - 74.0), rect_size)
+	draw_rect(rect, WARNING_COLOR.lerp(DANGER_COLOR, pulse), true)
+	draw_rect(rect, Color(0.180392, 0.117647, 0.078431, 1.0), false, 2.0)
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = 15
+	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
+	draw_string(font, rect.position + Vector2((rect.size.x - text_size.x) * 0.5, 21.0), text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, TEXT_COLOR)
+
+
+func _draw_label() -> void:
+	var font: Font = ThemeDB.fallback_font
+	var font_size: int = 13
+	var text_size: Vector2 = font.get_string_size(_label, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
+	var rect_size: Vector2 = Vector2(text_size.x + 22.0, 24.0)
+	var rect: Rect2 = Rect2(Vector2(-rect_size.x * 0.5, RACK_TOP + RACK_HEIGHT + 14.0), rect_size)
+	draw_rect(Rect2(rect.position + Vector2(2.0, 2.0), rect.size), Color(0, 0, 0, 0.35), true)
+	draw_rect(rect, PAPER_COLOR, true)
+	draw_rect(rect, TEXT_COLOR, false, 1.3)
+	draw_string(font, rect.position + Vector2((rect.size.x - text_size.x) * 0.5, 17.0), _label, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, TEXT_COLOR)
+
+
+func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
+	var points: PackedVector2Array = PackedVector2Array()
+	for index: int in range(28):
+		var angle: float = (float(index) / 28.0) * TAU
+		points.append(center + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
+	draw_colored_polygon(points, color)
+
+
 func _setup_particles() -> void:
 	var drip_texture: ImageTexture = _make_drip_texture()
 	_drip_particles = GPUParticles2D.new()
-	_drip_particles.position = Vector2(0.0, -98.0)
+	_drip_particles.position = Vector2(0.0, RACK_TOP - 6.0)
 	_drip_particles.amount = 14
-	_drip_particles.lifetime = 0.75
+	_drip_particles.lifetime = 0.85
 	_drip_particles.explosiveness = 0.0
 	_drip_particles.emitting = false
 	_drip_particles.local_coords = false
 	_drip_particles.texture = drip_texture
 	var drip_material: ParticleProcessMaterial = ParticleProcessMaterial.new()
 	drip_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
-	drip_material.emission_box_extents = Vector3(28.0, 1.0, 0.0)
+	drip_material.emission_box_extents = Vector3(26.0, 1.0, 0.0)
 	drip_material.direction = Vector3(0.0, 1.0, 0.0)
 	drip_material.spread = 4.0
 	drip_material.gravity = Vector3(0.0, 620.0, 0.0)
@@ -106,7 +292,7 @@ func _setup_particles() -> void:
 	add_child(_drip_particles)
 
 	_splash_particles = GPUParticles2D.new()
-	_splash_particles.position = Vector2(0.0, 95.0)
+	_splash_particles.position = PUDDLE_CENTER_OFFSET
 	_splash_particles.amount = 18
 	_splash_particles.lifetime = 0.4
 	_splash_particles.explosiveness = 0.0
@@ -146,140 +332,3 @@ func _make_drip_texture() -> ImageTexture:
 			var alpha: float = clampf(1.0 - distance * distance, 0.0, 1.0)
 			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
 	return ImageTexture.create_from_image(image)
-
-
-func set_label(text: String) -> void:
-	_label = text
-	queue_redraw()
-
-
-func _draw() -> void:
-	_draw_floor_zone()
-	_draw_growing_puddle()
-	_draw_ac_unit()
-	_draw_rack()
-	_draw_state_overlay()
-	_draw_label()
-
-
-func _draw_growing_puddle() -> void:
-	if _puddle_radius < 1.0:
-		return
-	var center: Vector2 = PUDDLE_CENTER_OFFSET
-	var size: Vector2 = Vector2(_puddle_radius, _puddle_radius * PUDDLE_ASPECT)
-	_draw_ellipse(center + Vector2(3.0, 4.0), size * 1.02, Color(0.0, 0.0, 0.0, 0.30))
-	_draw_ellipse(center, size, WATER_DARK)
-	_draw_ellipse(center + Vector2(-_puddle_radius * 0.18, -_puddle_radius * 0.07), size * 0.55, WATER_COLOR)
-	# A bright highlight at the surface so the wet sheen reads
-	_draw_ellipse(center + Vector2(-_puddle_radius * 0.3, -_puddle_radius * 0.12), size * 0.28, Color(0.823529, 0.929412, 0.952941, 0.55))
-
-
-func _draw_floor_zone() -> void:
-	var zone_color: Color = Color(0.078431, 0.101961, 0.105882, 0.58)
-	var border_color: Color = Color(0.274510, 0.352941, 0.349020, 0.9)
-	if state == LeakState.LEAKING or state == LeakState.TAPE_FAILED:
-		var pulse: float = (sin(_time * 8.0) + 1.0) * 0.5
-		border_color = WARNING_COLOR.lerp(DANGER_COLOR, pulse)
-	draw_rect(Rect2(Vector2(-105.0, -138.0), Vector2(210.0, 284.0)), zone_color, true)
-	draw_rect(Rect2(Vector2(-105.0, -138.0), Vector2(210.0, 284.0)), border_color, false, 3.0)
-
-
-func _draw_ac_unit() -> void:
-	var unit_rect: Rect2 = Rect2(Vector2(-78.0, -132.0), Vector2(156.0, 34.0))
-	draw_rect(Rect2(unit_rect.position + Vector2(3.0, 4.0), unit_rect.size), Color(0, 0, 0, 0.35), true)
-	draw_rect(unit_rect, Color(0.784314, 0.788235, 0.741176, 1.0), true)
-	draw_rect(unit_rect, Color(0.349020, 0.349020, 0.321569, 1.0), false, 2.0)
-	for index: int in range(5):
-		var x: float = unit_rect.position.x + 18.0 + float(index) * 26.0
-		draw_line(Vector2(x, unit_rect.position.y + 9.0), Vector2(x + 13.0, unit_rect.position.y + 23.0), Color(0.349020, 0.349020, 0.321569, 0.7), 2.0, true)
-	# Drip is now rendered by the GPUParticles2D set up in _setup_particles.
-
-
-func _draw_rack() -> void:
-	var origin: Vector2 = -RACK_SIZE * 0.5
-	draw_rect(Rect2(origin + Vector2(5.0, 8.0), RACK_SIZE), Color(0, 0, 0, 0.55), true)
-	draw_rect(Rect2(origin, RACK_SIZE), RACK_BODY, true)
-	draw_rect(Rect2(origin, Vector2(18.0, RACK_SIZE.y)), RACK_SIDE, true)
-	draw_rect(Rect2(origin + Vector2(RACK_SIZE.x - 18.0, 0.0), Vector2(18.0, RACK_SIZE.y)), RACK_SIDE, true)
-	draw_rect(Rect2(origin, RACK_SIZE), RACK_TRIM, false, 3.0)
-	for shelf_index: int in range(5):
-		var shelf_y: float = origin.y + 22.0 + float(shelf_index) * 31.0
-		draw_rect(Rect2(Vector2(origin.x + 22.0, shelf_y), Vector2(RACK_SIZE.x - 44.0, 18.0)), Color(0.027451, 0.039216, 0.043137, 1.0), true)
-		var blink: float = (sin(_time * 5.0 + float(shelf_index)) + 1.0) * 0.5
-		var led_color: Color = SERVER_LIGHT.lerp(WARNING_COLOR, blink if state == LeakState.LEAKING else 0.0)
-		if state == LeakState.TAPE_FAILED:
-			led_color = DANGER_COLOR
-		draw_circle(Vector2(origin.x + 34.0, shelf_y + 9.0), 3.0, led_color)
-		draw_rect(Rect2(Vector2(origin.x + 46.0, shelf_y + 6.0), Vector2(46.0, 4.0)), Color(SERVER_LIGHT.r, SERVER_LIGHT.g, SERVER_LIGHT.b, 0.45), true)
-
-
-func _draw_state_overlay() -> void:
-	match state:
-		LeakState.LEAKING:
-			_draw_warning_burst("مويه!")
-		LeakState.TAPE_PATCHED:
-			_draw_tape_patch(false)
-		LeakState.BUCKET_PLACED:
-			_draw_bucket()
-		LeakState.TAPE_FAILED:
-			_draw_tape_patch(true)
-			_draw_warning_burst("الشطرطون خان!")
-
-
-func _draw_tape_patch(failed: bool) -> void:
-	var center: Vector2 = Vector2(0.0, -88.0)
-	var angle: float = -0.12 if not failed else 0.22
-	var transform: Transform2D = Transform2D(angle, center)
-	draw_set_transform_matrix(transform)
-	var rect: Rect2 = Rect2(Vector2(-56.0, -9.0), Vector2(112.0, 18.0))
-	draw_rect(rect, TAPE_COLOR, true)
-	draw_rect(rect, Color(0.549020, 0.466667, 0.270588, 1.0), false, 1.6)
-	if failed:
-		draw_line(Vector2(-36.0, -9.0), Vector2(-18.0, 9.0), DANGER_COLOR, 3.0, true)
-		draw_line(Vector2(22.0, -9.0), Vector2(38.0, 9.0), DANGER_COLOR, 3.0, true)
-	draw_set_transform_matrix(Transform2D.IDENTITY)
-
-
-func _draw_bucket() -> void:
-	var center: Vector2 = Vector2(0.0, 104.0)
-	var top_left: Vector2 = center + Vector2(-24.0, -18.0)
-	var top_right: Vector2 = center + Vector2(24.0, -18.0)
-	var bottom_left: Vector2 = center + Vector2(-16.0, 18.0)
-	var bottom_right: Vector2 = center + Vector2(16.0, 18.0)
-	draw_colored_polygon(PackedVector2Array([top_left + Vector2(3, 4), top_right + Vector2(3, 4), bottom_right + Vector2(3, 4), bottom_left + Vector2(3, 4)]), Color(0, 0, 0, 0.4))
-	draw_colored_polygon(PackedVector2Array([top_left, top_right, bottom_right, bottom_left]), BUCKET_COLOR)
-	draw_line(top_left, top_right, Color(0.388235, 0.388235, 0.423529, 1), 3.0, true)
-	draw_line(bottom_left, bottom_right, Color(0.388235, 0.388235, 0.423529, 1), 2.0, true)
-	draw_arc(center + Vector2(0.0, -18.0), 19.0, PI * 1.05, PI * 1.95, 16, Color(0.388235, 0.388235, 0.423529, 1), 1.8, true)
-
-
-func _draw_warning_burst(text: String) -> void:
-	var pulse: float = (sin(_time * 9.0) + 1.0) * 0.5
-	var rect_size: Vector2 = Vector2(146.0 + pulse * 8.0, 34.0 + pulse * 4.0)
-	var rect: Rect2 = Rect2(Vector2(-rect_size.x * 0.5, -174.0), rect_size)
-	draw_rect(rect, WARNING_COLOR.lerp(DANGER_COLOR, pulse), true)
-	draw_rect(rect, Color(0.180392, 0.117647, 0.078431, 1.0), false, 2.0)
-	var font: Font = ThemeDB.fallback_font
-	var font_size: int = 16
-	var text_size: Vector2 = font.get_string_size(text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
-	draw_string(font, rect.position + Vector2((rect.size.x - text_size.x) * 0.5, 22.0), text, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, TEXT_COLOR)
-
-
-func _draw_label() -> void:
-	var font: Font = ThemeDB.fallback_font
-	var font_size: int = 13
-	var text_size: Vector2 = font.get_string_size(_label, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size)
-	var rect_size: Vector2 = Vector2(text_size.x + 22.0, 25.0)
-	var rect: Rect2 = Rect2(Vector2(-rect_size.x * 0.5, 148.0), rect_size)
-	draw_rect(Rect2(rect.position + Vector2(2.0, 2.0), rect.size), Color(0, 0, 0, 0.35), true)
-	draw_rect(rect, PAPER_COLOR, true)
-	draw_rect(rect, TEXT_COLOR, false, 1.3)
-	draw_string(font, Vector2(-text_size.x * 0.5, 165.0), _label, HORIZONTAL_ALIGNMENT_CENTER, -1.0, font_size, TEXT_COLOR)
-
-
-func _draw_ellipse(center: Vector2, radii: Vector2, color: Color) -> void:
-	var points: PackedVector2Array = PackedVector2Array()
-	for index: int in range(28):
-		var angle: float = (float(index) / 28.0) * TAU
-		points.append(center + Vector2(cos(angle) * radii.x, sin(angle) * radii.y))
-	draw_colored_polygon(points, color)

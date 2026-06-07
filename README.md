@@ -1,8 +1,20 @@
 # Shift Panic
 
-Shift Panic: Manual Override is a single-player Godot prototype about surviving a late-night maintenance shift in a mysterious building. The current branch builds a local vertical slice with live systems, readable disasters, intervention choices, maintenance tools, win/loss, retry, panic feedback, and procedural audio cues.
+Shift Panic is a single-player Godot game about surviving a late-night shift as the last maintenance worker in a collapsing building. Visible problems (leaks, fires, electrical sparks) appear faster and faster — run between them, hold to fix the nearest one, and survive as long as you can before the building falls and hands you a screenshot-worthy verdict.
 
-Current status: `Milestone 8 - إعادة البناء الصناعي / Industrial Rebuild` pending manual Godot runtime validation.
+Current status: `Milestone 9 - Design Reset / قلب اللعب الجديد` pending manual Godot runtime validation.
+
+## The Loop (new core, Milestone 9)
+
+The abstract three-meter simulation was replaced with one readable loop:
+
+- **One health bar:** building integrity, drained by the combined danger of every active problem.
+- **Visible problems:** leaks, fires, and sparks spawn around the room, each drawn distinctly with particles and a floating "!" that grows with severity.
+- **One verb:** run to a problem (WASD) and hold SPACE to fill its fix ring. Walk away and the progress slips.
+- **Escalation:** problems spawn faster and skew toward fire/spark the longer you last.
+- **Screenshot verdict:** when health hits zero, an end card shows how long you survived, how many you fixed, the worst simultaneous chaos, and a comedic rating.
+
+The earlier dashboard/console build is kept at `scenes/game/desk_room.tscn` for reference but is no longer the main scene.
 
 Engine requirement: Godot 4 Standard.
 

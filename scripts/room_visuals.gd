@@ -19,7 +19,6 @@ const PIPE_SHADE: Color = Color(0.184314, 0.196078, 0.219608, 1.0)
 const PIPE_HIGHLIGHT: Color = Color(0.521569, 0.549020, 0.592157, 1.0)
 const PANEL_METAL: Color = Color(0.270588, 0.286275, 0.317647, 1.0)
 const PANEL_DARK: Color = Color(0.152941, 0.164706, 0.184314, 1.0)
-const SERVER_ZONE: Color = Color(0.078431, 0.105882, 0.133333, 0.55)
 const HAZARD_YELLOW: Color = Color(0.847059, 0.658824, 0.180392, 1.0)
 const SIGN_BG: Color = Color(0.901961, 0.847059, 0.690196, 0.96)
 const SIGN_TEXT: Color = Color(0.137255, 0.105882, 0.070588, 1.0)
@@ -34,25 +33,11 @@ func _ready() -> void:
 
 
 func _draw() -> void:
-	_draw_server_zone()
 	_draw_walls()
 	_draw_wall_pipes()
 	_draw_electrical_panel()
 	_draw_safety_signs()
 	_draw_floor_outlets()
-
-
-func _draw_server_zone() -> void:
-	# Cooler tile tint over the shader floor so the server room reads as its own space.
-	draw_rect(Rect2(Vector2(880.0, WALL_THICKNESS), Vector2(ROOM_WIDTH - WALL_THICKNESS - 880.0, ROOM_HEIGHT - WALL_THICKNESS * 2.0)), SERVER_ZONE, true)
-	# Partition wall framing the doorway on the server-room side.
-	var wall_color: Color = WALL_CONCRETE_DARK
-	draw_rect(Rect2(Vector2(862.0, WALL_THICKNESS), Vector2(20.0, 150.0)), wall_color, true)
-	draw_rect(Rect2(Vector2(862.0, 452.0), Vector2(20.0, ROOM_HEIGHT - WALL_THICKNESS - 452.0)), wall_color, true)
-	draw_rect(Rect2(Vector2(862.0, WALL_THICKNESS), Vector2(20.0, 150.0)), WALL_HIGHLIGHT, false, 1.0)
-	draw_rect(Rect2(Vector2(862.0, 452.0), Vector2(20.0, ROOM_HEIGHT - WALL_THICKNESS - 452.0)), WALL_HIGHLIGHT, false, 1.0)
-	# Doorway threshold shadow.
-	draw_rect(Rect2(Vector2(864.0, 180.0), Vector2(16.0, 272.0)), Color(0.0, 0.0, 0.0, 0.32), true)
 
 
 func _draw_walls() -> void:
@@ -135,12 +120,10 @@ func _draw_electrical_panel() -> void:
 
 
 func _draw_safety_signs() -> void:
-	# Server-room sign above the doorway.
-	_draw_sign(Vector2(1050.0, 150.0), Vector2(200.0, 30.0), "غرفة السيرفر", SIGN_BG, SIGN_TEXT)
-	# Warning sign near the server room.
-	_draw_sign(Vector2(1010.0, 600.0), Vector2(180.0, 28.0), "ممنوع المياه قرب المعدات", WARN_SIGN_BG, WARN_SIGN_TEXT)
-	# Exit-style sign over the manager door (right wall, lower).
-	_draw_sign(Vector2(ROOM_WIDTH - 70.0, 466.0), Vector2(96.0, 24.0), "إدارة", SIGN_BG, SIGN_TEXT)
+	# General night-shift building signage.
+	_draw_sign(Vector2(150.0, 48.0), Vector2(180.0, 26.0), "التشغيل الليلي — الطابق -3", SIGN_BG, SIGN_TEXT)
+	_draw_sign(Vector2(1100.0, 48.0), Vector2(150.0, 26.0), "مخرج طوارئ", WARN_SIGN_BG, WARN_SIGN_TEXT)
+	_draw_sign(Vector2(ROOM_WIDTH - 70.0, 360.0), Vector2(96.0, 24.0), "إدارة", SIGN_BG, SIGN_TEXT)
 
 
 func _draw_floor_outlets() -> void:

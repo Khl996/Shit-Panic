@@ -1,0 +1,88 @@
+[gd_scene load_steps=14 format=3]
+
+[ext_resource type="Script" path="res://scripts/building_controller.gd" id="1_controller"]
+[ext_resource type="Script" path="res://scripts/room_visuals.gd" id="2_room"]
+[ext_resource type="Script" path="res://scripts/player_character.gd" id="3_player"]
+[ext_resource type="Script" path="res://scripts/desk_console_object.gd" id="4_desk"]
+[ext_resource type="Script" path="res://scripts/tool_rack_object.gd" id="5_rack"]
+[ext_resource type="Shader" path="res://shaders/concrete_floor.gdshader" id="6_floor"]
+[ext_resource type="Script" path="res://scripts/lighting_rig.gd" id="7_light"]
+
+[sub_resource type="ShaderMaterial" id="FloorMaterial"]
+shader = ExtResource("6_floor")
+
+[sub_resource type="RectangleShape2D" id="WallTop"]
+size = Vector2(1280, 30)
+
+[sub_resource type="RectangleShape2D" id="WallBottom"]
+size = Vector2(1280, 30)
+
+[sub_resource type="RectangleShape2D" id="WallLeft"]
+size = Vector2(30, 720)
+
+[sub_resource type="RectangleShape2D" id="WallRight"]
+size = Vector2(30, 720)
+
+[sub_resource type="CircleShape2D" id="PlayerShape"]
+radius = 16.0
+
+[node name="BuildingPanic" type="Node2D"]
+script = ExtResource("1_controller")
+
+[node name="FloorShader" type="ColorRect" parent="."]
+z_index = -20
+material = SubResource("FloorMaterial")
+offset_right = 1280.0
+offset_bottom = 720.0
+
+[node name="Background" type="Node2D" parent="."]
+script = ExtResource("2_room")
+
+[node name="Walls" type="StaticBody2D" parent="."]
+
+[node name="WallTopCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, 15)
+shape = SubResource("WallTop")
+
+[node name="WallBottomCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(640, 705)
+shape = SubResource("WallBottom")
+
+[node name="WallLeftCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(15, 360)
+shape = SubResource("WallLeft")
+
+[node name="WallRightCollider" type="CollisionShape2D" parent="Walls"]
+position = Vector2(1265, 360)
+shape = SubResource("WallRight")
+
+[node name="Decor" type="Node2D" parent="."]
+
+[node name="DeskConsole" type="Node2D" parent="Decor"]
+position = Vector2(640, 660)
+script = ExtResource("4_desk")
+
+[node name="ToolRack" type="Node2D" parent="Decor"]
+position = Vector2(90, 380)
+script = ExtResource("5_rack")
+
+[node name="HazardLayer" type="Node2D" parent="."]
+
+[node name="Player" type="CharacterBody2D" parent="."]
+position = Vector2(640, 480)
+script = ExtResource("3_player")
+
+[node name="PlayerCollider" type="CollisionShape2D" parent="Player"]
+shape = SubResource("PlayerShape")
+
+[node name="Lighting" type="Node2D" parent="."]
+script = ExtResource("7_light")
+
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+limit_left = 0
+limit_top = 0
+limit_right = 1280
+limit_bottom = 720
+
+[node name="HUD" type="CanvasLayer" parent="."]

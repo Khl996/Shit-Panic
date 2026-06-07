@@ -82,6 +82,15 @@ func _trigger_slip(speed: float) -> void:
 	velocity = _facing * speed * 0.55
 
 
+func apply_external_slip() -> void:
+	if _slip_timer > 0.0:
+		return
+	var direction: Vector2 = _facing if _facing.length() > 0.01 else Vector2.DOWN
+	_slip_timer = SLIP_DURATION
+	_slip_offset = Vector2.ZERO
+	velocity = direction * 260.0
+
+
 func is_walking() -> bool:
 	return velocity.length() > 12.0 and _slip_timer <= 0.0
 

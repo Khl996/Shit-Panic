@@ -2,7 +2,7 @@
 
 Shift Panic: Manual Override is a single-player Godot prototype about surviving a late-night maintenance shift in a mysterious building. The current branch builds a local vertical slice with live systems, readable disasters, intervention choices, maintenance tools, win/loss, retry, panic feedback, and procedural audio cues.
 
-Current status: `Milestone 6 - تمشي / Walk The Room` pending manual Godot runtime validation.
+Current status: `Milestone 7 - الإحساس / Game Feel` pending manual Godot runtime validation.
 
 Engine requirement: Godot 4 Standard.
 
@@ -75,12 +75,18 @@ Engine requirement: Godot 4 Standard.
 - Proximity prompts (E key) for the desk console, tool rack, radio device, and manager door.
 - Action console panel appears automatically when the player stands near the desk and hides when they walk away.
 - Tools become physical: pick up tape or bucket at the rack with E, then press F near the leak to apply.
-- Always-visible shift card explains the current incident, next steps, and why desk-number actions are general building decisions.
-- Room zones visually separate the maintenance desk, tool rack, and server room so physical incidents have a readable place.
-- First leak incident now supports an explicit safe-vs-fast choice: bucket with E or duct tape with Q at the tool rack.
+- First leak incident supports an explicit safe-vs-fast choice: bucket with E or duct tape with Q at the tool rack.
+- Visible server room with its own partition wall, doorway, and bureaucratic sign so the leak has a readable place.
 - HUD shrinks to the essentials: integrity, shift clock, carried tool, alarm feed strip, and a context-sensitive interaction prompt.
 - Manager door tease with rotating sleep-related lines on knock attempts.
 - All existing simulation systems (facility state, event director, intervention controller, alarm feed, audio) are reused unchanged by the new scene.
+- Visible AC unit dripping over the server with GPU-driven water particles and splash, replacing the prototype hand-drawn drip.
+- Growing wet puddle on the server room floor that expands while leaking and shrinks once patched or caught.
+- Player slips when running through the puddle, drops any carried tool, and triggers a camera shake.
+- Camera2D with offset shake on leak start, tape failure, manual override, tool application, win, and loss.
+- Layered procedural audio: button clicks, alarms, win and loss now mix fundamental + harmonic frequencies, plus new drip, slip, and clock tick cues.
+- Opening cinematic fades in "01:30 صباحاً — استلام المناوبة" with a clock tick before play starts.
+- Result screen springs in with a back-eased scale and modulate tween for a printed-paper feel.
 
 ## Not Implemented Yet
 

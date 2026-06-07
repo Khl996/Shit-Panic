@@ -39,6 +39,14 @@ Completed locally on the feature branch:
 - Input model: WASD / arrows move the player; E interacts with the nearest object in range; F uses the currently carried tool; 1–5 still trigger interventions globally; CTRL+R/W/L/D/A still work as dev shortcuts.
 - The old `maintenance_desk_controller.gd` is no longer wired in the new scene; its tool-use logic was inlined into `desk_room_controller.gd` so the tools become physical (pick up at rack with E, use with F). The script is kept in the repo in case future milestones need it.
 - `PanicFeedbackController` is intentionally not used in the new scene yet; the CRT-flavored shake and scanlines were dashboard-specific and a redesign is owed before they re-appear.
+- Milestone 6 follow-up (commit `07ffba3`) added `server_leak_object.gd`, made the AC leak readable in space, gated console keys 1-5 by desk proximity, and split tool pickup into E for bucket / Q for tape so the safe-vs-fast tradeoff is explicit.
+- Milestone 7 strips the tutorial UI excess from the previous pass (mission panel, on-floor objective arrow, pulsing ring, labelled tool/desk zones) and replaces it with game feel. The world now narrates itself instead of overlay text.
+- Milestone 7 adds a `Camera2D` and an offset-based shake controller wired into leak start (medium), tape failure (strong), patch/bucket use (light), manual override (strong), normal intervention (light), win (light) and loss (heavy).
+- Server leak now uses two `GPUParticles2D` instances — falling drip from the AC unit and an upward splash on the rack base — driven by a single procedurally generated soft-circle `ImageTexture`. The hand-drawn drip in `_draw_ac_unit` and the duplicate drop loop in `_draw_puddle` were removed.
+- A growing wet puddle now lives on `server_leak_object`. Radius grows while leaking, shrinks otherwise, and the controller polls `is_in_puddle(world_pos)` each frame. When the player enters the puddle at speed they slip via `PlayerCharacter.apply_external_slip()`, drop any carried tool, and trigger a shake plus the new SLIP audio cue.
+- `audio_feedback_controller.gd` gained `_make_layered_tone` and `_make_layered_two_tone` and rebuilt every cue as fundamental + harmonic mixes. New cues: `DRIP` (loops every ~0.62 s while a leak is active), `SLIP` (descending whoop), and `CLOCK_TICK` (used by the intro cinematic).
+- Opening cinematic (`_build_intro_overlay` + `_play_intro_cinematic`) fades a "01:30 صباحاً — استلام المناوبة" title in/out over ~3 s while pausing the simulation; uses a `Tween` chain for sequence + parallel fade.
+- Result screen pops in with a `Tween` that scales the panel from a squashed 5 % height to 100 % with `TRANS_BACK` ease and fades alpha from 0 to 1 over 0.45 s, then focuses the retry button.
 
 The user manually reported one Godot parse issue after Epic 1 implementation. It was fixed in:
 

@@ -88,7 +88,21 @@ var _manager_line_index: int = 0
 @onready var pressure_meter: Node2D = $Furniture/PressureMeter
 @onready var power_meter: Node2D = $Furniture/PowerMeter
 @onready var manager_door: Node2D = $Furniture/ManagerDoor
+@onready var camera: Camera2D = $Camera
 @onready var hud_layer: CanvasLayer = $HUD
+
+const SHAKE_BASE_POSITION: Vector2 = Vector2(640.0, 360.0)
+var _shake_intensity: float = 0.0
+var _shake_remaining: float = 0.0
+var _shake_time: float = 0.0
+var _was_in_puddle: bool = false
+var _drip_audio_timer: float = 0.0
+const DRIP_AUDIO_INTERVAL: float = 0.62
+var _intro_active: bool = true
+var _intro_overlay: Control
+var _intro_dim: ColorRect
+var _intro_title_label: Label
+var _intro_sub_label: Label
 
 var _interactables: Array[Dictionary] = []
 var _current_interact_index: int = -1
@@ -96,10 +110,6 @@ var _interact_prompt_label: Label
 var _integrity_label: Label
 var _shift_clock_label: Label
 var _carry_label: Label
-var _mission_panel: PanelContainer
-var _mission_title_label: Label
-var _mission_step_labels: Array[Label] = []
-var _mission_note_label: Label
 var _action_panel: PanelContainer
 var _action_feedback_label: Label
 var _override_remaining_label: Label
@@ -120,7 +130,6 @@ var _alarm_time_labels: Array[Label] = []
 var _radio_popup_panel: PanelContainer
 var _radio_popup_label: Label
 var _radio_popup_timer: float = 0.0
-var _objective_pulse: float = 0.0
 var _result_overlay: Control
 var _result_panel: PanelContainer
 var _result_title_label: Label
@@ -139,11 +148,16 @@ func _ready() -> void:
 	_configure_alarm_feed()
 	_configure_audio()
 	_build_result_overlay()
+	_build_intro_overlay()
 	_reset_round_stats()
 	_update_hud()
+	_play_intro_cinematic()
 
 
 func _process(delta: float) -> void:
+	if _intro_active:
+		_update_camera_shake(delta)
+		return
 	if facility_state.round_state == FacilityState.RoundState.RUNNING:
 		var integrity_before: float = facility_state.integrity
 		facility_state.advance(delta)
@@ -160,60 +174,57 @@ func _process(delta: float) -> void:
 		_radio_popup_timer = maxf(_radio_popup_timer - delta, 0.0)
 		if _radio_popup_timer <= 0.0 and is_instance_valid(_radio_popup_panel):
 			_radio_popup_panel.visible = false
-	_objective_pulse += delta
+	_update_camera_shake(delta)
+	_check_player_slip()
 	_update_proximity()
 	_update_hud()
-	queue_redraw()
 	_previous_integrity = facility_state.integrity
 
 
-func _draw() -> void:
-	if not is_instance_valid(player) or facility_state == null or facility_state.is_finished():
+func _check_player_slip() -> void:
+	if not is_instance_valid(player) or not is_instance_valid(server_leak_object):
 		return
-	var target: Node2D = _current_objective_target()
-	if not is_instance_valid(target):
+	if not server_leak_object.has_method("is_in_puddle"):
 		return
-	var target_position: Vector2 = target.position
-	var player_position: Vector2 = player.position
-	var color: Color = WARNING_COLOR
-	if target == server_leak_object:
-		color = DANGER_COLOR if _tape_failure_alarm_active else WARNING_COLOR
-	elif target == tool_rack:
-		color = STABLE_COLOR
-	var pulse: float = (sin(_objective_pulse * 5.0) + 1.0) * 0.5
-	var ring_radius: float = 54.0 + pulse * 10.0
-	draw_arc(target_position, ring_radius, 0.0, TAU, 48, Color(color.r, color.g, color.b, 0.75), 4.0, true)
-	_draw_floor_arrow(player_position, target_position, color)
+	var in_puddle: bool = server_leak_object.is_in_puddle(player.global_position)
+	if in_puddle and not _was_in_puddle and player is PlayerCharacter:
+		var player_char: PlayerCharacter = player as PlayerCharacter
+		if player_char.velocity.length() > 90.0:
+			player_char.apply_external_slip()
+			_trigger_shake(3.5, 0.25)
+			audio_feedback_controller.play(AudioFeedbackController.Cue.SLIP)
+			# If carrying something, drop it on the floor (comedy moment)
+			if _player_carry_state != PlayerCharacter.CarryState.NONE:
+				_show_radio_popup("انزلقت! الأداة طارت من يدك. روح للرف من جديد.")
+				_set_carry_state(PlayerCharacter.CarryState.NONE)
+	_was_in_puddle = in_puddle
 
 
-func _draw_floor_arrow(from_position: Vector2, to_position: Vector2, color: Color) -> void:
-	var direction: Vector2 = to_position - from_position
-	var distance: float = direction.length()
-	if distance < 90.0:
+func _update_camera_shake(delta: float) -> void:
+	if not is_instance_valid(camera):
 		return
-	direction = direction.normalized()
-	var start: Vector2 = from_position + direction * 48.0
-	var stop: Vector2 = to_position - direction * 64.0
-	var arrow_color: Color = Color(color.r, color.g, color.b, 0.42)
-	draw_line(start, stop, arrow_color, 8.0, true)
-	var head_center: Vector2 = stop
-	var side: Vector2 = direction.orthogonal()
-	var points: PackedVector2Array = PackedVector2Array([
-		head_center + direction * 20.0,
-		head_center - direction * 14.0 + side * 14.0,
-		head_center - direction * 14.0 - side * 14.0,
-	])
-	draw_colored_polygon(points, Color(color.r, color.g, color.b, 0.70))
+	if _shake_remaining > 0.0:
+		_shake_remaining = maxf(_shake_remaining - delta, 0.0)
+		_shake_time += delta
+		var t: float = _shake_remaining
+		var falloff: float = clampf(t / 0.6, 0.0, 1.0)
+		var amount: float = _shake_intensity * falloff
+		var offset_x: float = sin(_shake_time * 47.0) * amount
+		var offset_y: float = cos(_shake_time * 53.0) * amount * 0.75
+		camera.offset = Vector2(offset_x, offset_y)
+	else:
+		camera.offset = Vector2.ZERO
+		_shake_intensity = 0.0
+		_shake_time = 0.0
 
 
-func _current_objective_target():
-	if _ac_leak_active or _tape_failure_alarm_active:
-		if _player_carry_state == PlayerCharacter.CarryState.NONE:
-			return tool_rack
-		return server_leak_object
-	if _active_radio_event_id != -1:
-		return desk_object
-	return null
+func _trigger_shake(intensity: float, duration: float) -> void:
+	if intensity <= _shake_intensity and _shake_remaining > 0.0:
+		# Replace only if new shake is at least as strong
+		return
+	_shake_intensity = intensity
+	_shake_remaining = duration
+	_shake_time = 0.0
 
 
 func _unhandled_input(event: InputEvent) -> void:
@@ -245,6 +256,9 @@ func reset_round() -> void:
 	alarm_feed_controller.reset()
 	audio_feedback_controller.reset()
 	_result_overlay.visible = false
+	if is_instance_valid(_result_panel):
+		_result_panel.scale = Vector2(1.0, 1.0)
+		_result_panel.modulate = Color(1.0, 1.0, 1.0, 1.0)
 	if player is PlayerCharacter:
 		(player as PlayerCharacter).reset_pose()
 	_set_carry_state(PlayerCharacter.CarryState.NONE)
@@ -253,6 +267,13 @@ func reset_round() -> void:
 		server_leak_object.set_state(SERVER_LEAK_STATE_DRY)
 	if radio_object.has_method("set_blink_active"):
 		radio_object.set_blink_active(false)
+	_shake_intensity = 0.0
+	_shake_remaining = 0.0
+	_shake_time = 0.0
+	_was_in_puddle = false
+	_drip_audio_timer = 0.0
+	if is_instance_valid(camera):
+		camera.offset = Vector2.ZERO
 	_update_hud()
 
 
@@ -293,8 +314,6 @@ func _build_hud() -> void:
 	_carry_label.size = Vector2(260.0, 24.0)
 	hud_layer.add_child(_carry_label)
 
-	_build_mission_panel()
-
 	# Interact prompt bottom-center
 	_interact_prompt_label = Label.new()
 	_interact_prompt_label.text = ""
@@ -315,57 +334,6 @@ func _build_hud() -> void:
 	_build_radio_popup()
 	# Action panel + situation panel (hidden, shown when near desk)
 	_build_action_panel()
-
-
-func _build_mission_panel() -> void:
-	_mission_panel = PanelContainer.new()
-	_mission_panel.add_theme_stylebox_override("panel", _make_mission_panel_style())
-	_mission_panel.position = Vector2(20.0, 52.0)
-	_mission_panel.size = Vector2(360.0, 190.0)
-	hud_layer.add_child(_mission_panel)
-
-	var margin: MarginContainer = MarginContainer.new()
-	margin.add_theme_constant_override("margin_left", 14)
-	margin.add_theme_constant_override("margin_top", 10)
-	margin.add_theme_constant_override("margin_right", 14)
-	margin.add_theme_constant_override("margin_bottom", 10)
-	_mission_panel.add_child(margin)
-
-	var layout: VBoxContainer = VBoxContainer.new()
-	layout.add_theme_constant_override("separation", 5)
-	margin.add_child(layout)
-
-	var eyebrow: Label = Label.new()
-	eyebrow.text = "كرت المناوبة"
-	eyebrow.text_direction = Control.TEXT_DIRECTION_AUTO
-	eyebrow.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	eyebrow.add_theme_font_size_override("font_size", 11)
-	eyebrow.add_theme_color_override("font_color", WARNING_COLOR)
-	layout.add_child(eyebrow)
-
-	_mission_title_label = Label.new()
-	_mission_title_label.text_direction = Control.TEXT_DIRECTION_AUTO
-	_mission_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_mission_title_label.add_theme_font_size_override("font_size", 17)
-	_mission_title_label.add_theme_color_override("font_color", PAPER_COLOR)
-	layout.add_child(_mission_title_label)
-
-	for _index: int in range(4):
-		var step_label: Label = Label.new()
-		step_label.text_direction = Control.TEXT_DIRECTION_AUTO
-		step_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-		step_label.add_theme_font_size_override("font_size", 13)
-		step_label.add_theme_color_override("font_color", PAPER_COLOR)
-		layout.add_child(step_label)
-		_mission_step_labels.append(step_label)
-
-	_mission_note_label = Label.new()
-	_mission_note_label.text_direction = Control.TEXT_DIRECTION_AUTO
-	_mission_note_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_RIGHT
-	_mission_note_label.autowrap_mode = TextServer.AUTOWRAP_WORD_SMART
-	_mission_note_label.add_theme_font_size_override("font_size", 11)
-	_mission_note_label.add_theme_color_override("font_color", STABLE_COLOR)
-	layout.add_child(_mission_note_label)
 
 
 func _build_alarm_feed_hud() -> void:
@@ -631,21 +599,6 @@ func _make_situation_panel_style() -> StyleBoxFlat:
 	return style
 
 
-func _make_mission_panel_style() -> StyleBoxFlat:
-	var style: StyleBoxFlat = StyleBoxFlat.new()
-	style.bg_color = Color(0.094118, 0.070588, 0.047059, 0.94)
-	style.border_color = Color(0.870588, 0.733333, 0.317647, 1.0)
-	style.border_width_left = 4
-	style.border_width_top = 2
-	style.border_width_right = 2
-	style.border_width_bottom = 4
-	style.corner_radius_top_left = 5
-	style.corner_radius_top_right = 2
-	style.corner_radius_bottom_right = 6
-	style.corner_radius_bottom_left = 2
-	return style
-
-
 func _make_alarm_root_style() -> StyleBoxFlat:
 	var style: StyleBoxFlat = StyleBoxFlat.new()
 	style.bg_color = Color(0.0784314, 0.0588235, 0.0431373, 0.85)
@@ -825,6 +778,74 @@ func _build_result_overlay() -> void:
 	layout.add_child(_retry_button)
 
 
+func _build_intro_overlay() -> void:
+	_intro_overlay = Control.new()
+	_intro_overlay.name = "IntroOverlay"
+	_intro_overlay.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_intro_overlay.mouse_filter = Control.MOUSE_FILTER_STOP
+	hud_layer.add_child(_intro_overlay)
+
+	_intro_dim = ColorRect.new()
+	_intro_dim.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_intro_dim.color = Color(0.02, 0.018, 0.013, 1.0)
+	_intro_overlay.add_child(_intro_dim)
+
+	var center: CenterContainer = CenterContainer.new()
+	center.set_anchors_preset(Control.PRESET_FULL_RECT)
+	_intro_overlay.add_child(center)
+
+	var stack: VBoxContainer = VBoxContainer.new()
+	stack.add_theme_constant_override("separation", 14)
+	center.add_child(stack)
+
+	_intro_title_label = Label.new()
+	_intro_title_label.text = "01:30 صباحاً"
+	_intro_title_label.text_direction = Control.TEXT_DIRECTION_AUTO
+	_intro_title_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intro_title_label.add_theme_font_size_override("font_size", 64)
+	_intro_title_label.add_theme_color_override("font_color", WARNING_COLOR)
+	stack.add_child(_intro_title_label)
+
+	_intro_sub_label = Label.new()
+	_intro_sub_label.text = "استلام المناوبة الليلية"
+	_intro_sub_label.text_direction = Control.TEXT_DIRECTION_AUTO
+	_intro_sub_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+	_intro_sub_label.add_theme_font_size_override("font_size", 22)
+	_intro_sub_label.add_theme_color_override("font_color", PAPER_COLOR)
+	stack.add_child(_intro_sub_label)
+
+
+func _play_intro_cinematic() -> void:
+	if not is_instance_valid(_intro_overlay):
+		_intro_active = false
+		return
+	_intro_active = true
+	_intro_overlay.visible = true
+	_intro_dim.color = Color(0.02, 0.018, 0.013, 1.0)
+	_intro_title_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	_intro_sub_label.modulate = Color(1.0, 1.0, 1.0, 0.0)
+
+	# Clock tick at the start of the cinematic
+	if audio_feedback_controller != null:
+		audio_feedback_controller.play(AudioFeedbackController.Cue.CLOCK_TICK)
+
+	var tween: Tween = create_tween()
+	tween.set_parallel(false)
+	tween.tween_property(_intro_title_label, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.55)
+	tween.parallel().tween_property(_intro_sub_label, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.55).set_delay(0.18)
+	tween.tween_interval(1.4)
+	tween.tween_property(_intro_dim, "color", Color(0.02, 0.018, 0.013, 0.0), 0.85)
+	tween.parallel().tween_property(_intro_title_label, "modulate", Color(1.0, 1.0, 1.0, 0.0), 0.7)
+	tween.parallel().tween_property(_intro_sub_label, "modulate", Color(1.0, 1.0, 1.0, 0.0), 0.7)
+	tween.tween_callback(_finish_intro)
+
+
+func _finish_intro() -> void:
+	_intro_active = false
+	if is_instance_valid(_intro_overlay):
+		_intro_overlay.visible = false
+
+
 func _reset_round_stats() -> void:
 	_total_interventions_used = 0
 	_manual_overrides_used = 0
@@ -891,15 +912,11 @@ func _update_objective_prompt() -> void:
 	if _player_carry_state == PlayerCharacter.CarryState.NONE:
 		if _player_in_range(tool_rack, _radius_for(INTERACT_TOOL_RACK)):
 			_interact_prompt_label.text = "[E] سطل آمن   [Q] شطرطون سريع"
-		else:
-			_interact_prompt_label.text = "اتبع السهم: روح لرف الأدوات"
-		_interact_prompt_label.visible = true
+			_interact_prompt_label.visible = true
 		return
 	if _player_in_range(server_leak_object, LEAK_USE_RADIUS):
 		_interact_prompt_label.text = "[F] استخدم %s على السيرفر" % _tool_name_for_state(_player_carry_state)
-	else:
-		_interact_prompt_label.text = "اتبع السهم: روح للسيرفر"
-	_interact_prompt_label.visible = true
+		_interact_prompt_label.visible = true
 
 
 func _player_in_range(node: Node2D, radius: float) -> bool:
@@ -1053,7 +1070,6 @@ func _update_hud() -> void:
 	_shift_clock_label.text = _format_time(facility_state.remaining_time)
 	_shift_clock_label.add_theme_color_override("font_color", _color_for_integrity())
 	_carry_label.text = _carry_label_text()
-	_update_mission_panel()
 	if is_instance_valid(wall_clock) and wall_clock.has_method("set_elapsed_fraction"):
 		var fraction: float = 0.0
 		if round_duration_seconds > 0.0:
@@ -1097,76 +1113,6 @@ func _format_time(seconds: float) -> String:
 	return "%02d:%02d" % [minutes, remaining_seconds]
 
 
-func _update_mission_panel() -> void:
-	if not is_instance_valid(_mission_title_label):
-		return
-	if _ac_leak_active or _tape_failure_alarm_active:
-		_update_leak_mission_panel()
-		return
-	if _active_radio_event_id != -1:
-		_set_mission_panel(
-			"بلاغ عام: %s" % _active_radio_event_title,
-			[
-				_format_step(false, "ارجع لمكتب المناوبة"),
-				_format_step(false, "اقرأ العداد اللي صار خطر"),
-				_format_step(false, "استخدم زر المكتب المناسب"),
-				_format_step(false, "راقب النتيجة قبل تضغط زر ثاني"),
-			],
-			"أزرار المكتب قرارات عامة للمبنى. المشاكل اليدوية لها أدوات ومكان."
-		)
-		return
-	_set_mission_panel(
-		"استلام شفت آخر الليل",
-		[
-			_format_step(true, "تحرك بـ WASD أو الأسهم"),
-			_format_step(false, "لا تضغط أزرار المكتب عشوائي"),
-			_format_step(false, "لما يجي بلاغ اتبع الكرت والسهم"),
-			_format_step(false, "هدفك تعدي الشفت بأقل فضايح"),
-		],
-		"أول بلاغ بيكون واضح ومكاني. اقرأ الكرت، ثم تحرك."
-	)
-
-
-func _update_leak_mission_panel() -> void:
-	var has_tool: bool = _player_carry_state != PlayerCharacter.CarryState.NONE
-	var near_rack: bool = _player_in_range(tool_rack, _radius_for(INTERACT_TOOL_RACK))
-	var near_server: bool = _player_in_range(server_leak_object, LEAK_USE_RADIUS)
-	var tool_line: String = "عند الرف: [E] سطل آمن أو [Q] شطرطون سريع"
-	if _player_carry_state == PlayerCharacter.CarryState.BUCKET:
-		tool_line = "معك السطل: حل آمن بس شكله رسمي زيادة"
-	elif _player_carry_state == PlayerCharacter.CarryState.DUCT_TAPE:
-		tool_line = "معك الشطرطون: سريع، بس لا تثق فيه كثير"
-	_set_mission_panel(
-		"بلاغ 01: السيرفر تحت المكيف",
-		[
-			_format_step(near_rack or has_tool, "روح لرف الأدوات يسار الغرفة"),
-			_format_step(has_tool, tool_line),
-			_format_step(near_server, "ادخل غرفة السيرفر يمين الغرفة"),
-			_format_step(false, "عند التنقيط اضغط [F]"),
-		],
-		"السطل يعالج المشكلة بهدوء. الشطرطون ينقذك بسرعة وقد يرجع يفضحك."
-	)
-
-
-func _set_mission_panel(title: String, steps: Array[String], note: String) -> void:
-	_mission_title_label.text = title
-	for index: int in range(_mission_step_labels.size()):
-		var label: Label = _mission_step_labels[index]
-		if index < steps.size():
-			label.text = steps[index]
-			label.visible = true
-			label.add_theme_color_override("font_color", STABLE_COLOR if steps[index].begins_with("[x]") else PAPER_COLOR)
-		else:
-			label.visible = false
-	_mission_note_label.text = note
-
-
-func _format_step(done: bool, text: String) -> String:
-	if done:
-		return "[x] %s" % text
-	return "[ ] %s" % text
-
-
 func _tool_name_for_state(carry_state: int) -> String:
 	match carry_state:
 		PlayerCharacter.CarryState.DUCT_TAPE:
@@ -1181,24 +1127,24 @@ func _update_situation_panel() -> void:
 	if not is_instance_valid(_situation_title_label):
 		return
 	if _tape_failure_alarm_active:
-		var failure_hint: String = "اتبع السهم للرف، خذ السطل، ثم عند السيرفر اضغط [F]."
+		var failure_hint: String = "الرف على يسارك. السطل أهدأ من الشطرطون."
 		if _player_carry_state != PlayerCharacter.CarryState.NONE:
-			failure_hint = "اتبع السهم للسيرفر واضغط [F]. الشطرطون أخذ فرصته."
+			failure_hint = "روح للسيرفر واضغط [F]."
 		if _player_carry_state != PlayerCharacter.CarryState.NONE and _player_in_range(server_leak_object, LEAK_USE_RADIUS):
-			failure_hint = "اضغط [F] الآن. لا تعط الشطرطون خطاب اعتذار."
+			failure_hint = "اضغط [F] الآن."
 		_set_situation_text(
 			"الشطرطون خان العشرة",
-			"الحل السريع رجع يعضك، والسيرفر تحت مكيف عنده رأي شخصي.",
+			"الحل السريع رجع يعضك.",
 			failure_hint,
 			DANGER_COLOR
 		)
 		return
 	if _ac_leak_active:
-		var leak_hint: String = "اتبع السهم لرف الأدوات، خذ شطرطون أو سطل، ثم رح للسيرفر واضغط [F]."
+		var leak_hint: String = "الرف يسار. [E] سطل آمن أو [Q] شطرطون سريع."
 		if _player_carry_state != PlayerCharacter.CarryState.NONE:
-			leak_hint = "اتبع السهم للسيرفر واضغط [F]. لا ترجع للمكتب بالأداة."
+			leak_hint = "السيرفر يمين. اضغط [F] قربه."
 		if _player_carry_state != PlayerCharacter.CarryState.NONE and _player_in_range(server_leak_object, LEAK_USE_RADIUS):
-			leak_hint = "اضغط [F] الآن. السيرفر ما يحب المطر الداخلي."
+			leak_hint = "اضغط [F] الآن."
 		_set_situation_text(
 			"المكيف ينقط فوق السيرفر",
 			"مويه فوق شيء غالي. ما تحتاج شهادة هندسة.",
@@ -1272,6 +1218,12 @@ func _update_maintenance_incidents(delta_seconds: float) -> void:
 		_start_ac_leak()
 	if _ac_leak_active:
 		facility_state.apply_ac_leak_over_server(delta_seconds)
+		_drip_audio_timer = maxf(_drip_audio_timer - delta_seconds, 0.0)
+		if _drip_audio_timer <= 0.0:
+			audio_feedback_controller.play(AudioFeedbackController.Cue.DRIP)
+			_drip_audio_timer = DRIP_AUDIO_INTERVAL
+	else:
+		_drip_audio_timer = 0.0
 	if _tape_failure_time > 0.0 and facility_state.elapsed_time >= _tape_failure_time:
 		_trigger_tape_failure()
 	if _tape_failure_alarm_active:
@@ -1298,11 +1250,12 @@ func _start_ac_leak() -> void:
 	alarm_feed_controller.raise_alarm(data)
 	_set_last_radio_message(data)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.WARNING_ALARM)
-	_show_radio_popup("بلاغ 01: المكيف فوق السيرفر قرر يصير شلال. اتبع كرت المناوبة.")
+	_show_radio_popup("بلاغ 01: المكيف فوق السيرفر قرر يصير شلال.")
 	if is_instance_valid(radio_object) and radio_object.has_method("set_blink_active"):
 		radio_object.set_blink_active(true)
 	if is_instance_valid(server_leak_object) and server_leak_object.has_method("set_state"):
 		server_leak_object.set_state(SERVER_LEAK_STATE_LEAKING)
+	_trigger_shake(4.0, 0.45)
 
 
 func _patch_ac_leak_with_tape() -> void:
@@ -1325,6 +1278,7 @@ func _patch_ac_leak_with_tape() -> void:
 		_resolve_tape_failure_alarm()
 	_show_radio_popup("الشطرطون ماسك... للحين")
 	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
+	_trigger_shake(2.5, 0.18)
 
 
 func _catch_ac_leak_with_bucket() -> void:
@@ -1347,6 +1301,7 @@ func _catch_ac_leak_with_bucket() -> void:
 		_resolve_tape_failure_alarm()
 	_show_radio_popup("السطل مستلم التنقيط")
 	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
+	_trigger_shake(1.6, 0.2)
 
 
 func _trigger_tape_failure() -> void:
@@ -1371,6 +1326,7 @@ func _trigger_tape_failure() -> void:
 	_show_radio_popup("الشطرطون خانك. نفس المكان، بس الآن الموضوع محرج.")
 	if is_instance_valid(radio_object) and radio_object.has_method("set_blink_active"):
 		radio_object.set_blink_active(true)
+	_trigger_shake(7.0, 0.6)
 
 
 func _resolve_tape_failure_alarm() -> void:
@@ -1432,6 +1388,9 @@ func _on_action_accepted(action: int) -> void:
 	_total_interventions_used += 1
 	if action == InterventionController.Action.OVERRIDE:
 		_manual_overrides_used += 1
+		_trigger_shake(5.5, 0.4)
+	else:
+		_trigger_shake(1.4, 0.12)
 	audio_feedback_controller.play(AudioFeedbackController.Cue.BUTTON_ACCEPTED)
 
 
@@ -1502,8 +1461,10 @@ func _finish_round() -> void:
 	_notify_controls_expired()
 	if facility_state.round_state == FacilityState.RoundState.SURVIVED:
 		audio_feedback_controller.play(AudioFeedbackController.Cue.WIN)
+		_trigger_shake(2.0, 0.25)
 	else:
 		audio_feedback_controller.play(AudioFeedbackController.Cue.LOSS)
+		_trigger_shake(9.0, 0.9)
 	_show_result_overlay()
 
 
@@ -1523,7 +1484,14 @@ func _show_result_overlay() -> void:
 	_result_panel.add_theme_stylebox_override("panel", _make_result_panel_style(accent_color))
 	_result_body_label.text = _build_result_body(survived)
 	_result_overlay.visible = true
-	_retry_button.grab_focus()
+	# Animate: scale from squashed paper to full, modulate from transparent to opaque
+	_result_panel.pivot_offset = _result_panel.size * 0.5
+	_result_panel.scale = Vector2(1.0, 0.05)
+	_result_panel.modulate = Color(1.0, 1.0, 1.0, 0.0)
+	var tween: Tween = create_tween().set_parallel(true)
+	tween.tween_property(_result_panel, "scale", Vector2(1.0, 1.0), 0.45).set_trans(Tween.TRANS_BACK).set_ease(Tween.EASE_OUT)
+	tween.tween_property(_result_panel, "modulate", Color(1.0, 1.0, 1.0, 1.0), 0.32)
+	tween.tween_callback(_retry_button.grab_focus).set_delay(0.4)
 
 
 func _make_result_panel_style(accent_color: Color) -> StyleBoxFlat:

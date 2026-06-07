@@ -101,4 +101,12 @@ script = ExtResource("3_player")
 [node name="PlayerCollider" type="CollisionShape2D" parent="Player"]
 shape = SubResource("PlayerShape")
 
+[node name="Camera" type="Camera2D" parent="."]
+position = Vector2(640, 360)
+position_smoothing_enabled = false
+limit_left = 0
+limit_top = 0
+limit_right = 1280
+limit_bottom = 720
+
 [node name="HUD" type="CanvasLayer" parent="."]

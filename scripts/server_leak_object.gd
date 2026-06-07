@@ -21,29 +21,131 @@ const TAPE_COLOR: Color = Color(0.937255, 0.870588, 0.682353, 1.0)
 const BUCKET_COLOR: Color = Color(0.611765, 0.611765, 0.643137, 1.0)
 const PAPER_COLOR: Color = Color(0.937255, 0.882353, 0.733333, 1.0)
 const TEXT_COLOR: Color = Color(0.180392, 0.117647, 0.0784314, 1.0)
+const PUDDLE_CENTER_OFFSET: Vector2 = Vector2(0.0, 116.0)
+const PUDDLE_GROWTH_PER_SECOND: float = 16.0
+const PUDDLE_SHRINK_PER_SECOND: float = 38.0
+const PUDDLE_MAX_RADIUS: float = 78.0
+const PUDDLE_ASPECT: float = 0.42
 
 var state: int = LeakState.DRY
 var _time: float = 0.0
 var _label: String = "السيرفر"
+var _drip_particles: GPUParticles2D
+var _splash_particles: GPUParticles2D
+var _puddle_radius: float = 0.0
 
 
 func _ready() -> void:
 	z_index = 4
 	set_process(true)
+	_setup_particles()
 	queue_redraw()
 
 
 func _process(delta: float) -> void:
 	_time += delta
-	if state != LeakState.DRY:
+	_update_puddle(delta)
+	if state != LeakState.DRY or _puddle_radius > 0.0:
 		queue_redraw()
+
+
+func _update_puddle(delta: float) -> void:
+	if state == LeakState.LEAKING or state == LeakState.TAPE_FAILED:
+		_puddle_radius = minf(_puddle_radius + PUDDLE_GROWTH_PER_SECOND * delta, PUDDLE_MAX_RADIUS)
+	else:
+		_puddle_radius = maxf(_puddle_radius - PUDDLE_SHRINK_PER_SECOND * delta, 0.0)
+
+
+func get_puddle_world_center() -> Vector2:
+	return global_position + PUDDLE_CENTER_OFFSET
+
+
+func get_puddle_radius() -> float:
+	return _puddle_radius
+
+
+func is_in_puddle(world_pos: Vector2) -> bool:
+	if _puddle_radius < 12.0:
+		return false
+	var center: Vector2 = get_puddle_world_center()
+	var dx: float = world_pos.x - center.x
+	var dy: float = (world_pos.y - center.y) / PUDDLE_ASPECT
+	return sqrt(dx * dx + dy * dy) <= _puddle_radius
 
 
 func set_state(new_state: int) -> void:
 	if state == new_state:
 		return
 	state = new_state
+	_update_particle_emission()
 	queue_redraw()
+
+
+func _setup_particles() -> void:
+	var drip_texture: ImageTexture = _make_drip_texture()
+	_drip_particles = GPUParticles2D.new()
+	_drip_particles.position = Vector2(0.0, -98.0)
+	_drip_particles.amount = 14
+	_drip_particles.lifetime = 0.75
+	_drip_particles.explosiveness = 0.0
+	_drip_particles.emitting = false
+	_drip_particles.local_coords = false
+	_drip_particles.texture = drip_texture
+	var drip_material: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	drip_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_BOX
+	drip_material.emission_box_extents = Vector3(28.0, 1.0, 0.0)
+	drip_material.direction = Vector3(0.0, 1.0, 0.0)
+	drip_material.spread = 4.0
+	drip_material.gravity = Vector3(0.0, 620.0, 0.0)
+	drip_material.initial_velocity_min = 18.0
+	drip_material.initial_velocity_max = 42.0
+	drip_material.scale_min = 0.55
+	drip_material.scale_max = 1.05
+	drip_material.color = Color(0.321569, 0.674510, 0.831373, 0.92)
+	_drip_particles.process_material = drip_material
+	add_child(_drip_particles)
+
+	_splash_particles = GPUParticles2D.new()
+	_splash_particles.position = Vector2(0.0, 95.0)
+	_splash_particles.amount = 18
+	_splash_particles.lifetime = 0.4
+	_splash_particles.explosiveness = 0.0
+	_splash_particles.emitting = false
+	_splash_particles.local_coords = false
+	_splash_particles.texture = drip_texture
+	var splash_material: ParticleProcessMaterial = ParticleProcessMaterial.new()
+	splash_material.emission_shape = ParticleProcessMaterial.EMISSION_SHAPE_POINT
+	splash_material.direction = Vector3(0.0, -1.0, 0.0)
+	splash_material.spread = 80.0
+	splash_material.gravity = Vector3(0.0, 480.0, 0.0)
+	splash_material.initial_velocity_min = 38.0
+	splash_material.initial_velocity_max = 95.0
+	splash_material.scale_min = 0.35
+	splash_material.scale_max = 0.75
+	splash_material.color = Color(0.498039, 0.811765, 0.894118, 0.85)
+	_splash_particles.process_material = splash_material
+	add_child(_splash_particles)
+
+
+func _update_particle_emission() -> void:
+	var should_emit: bool = state == LeakState.LEAKING or state == LeakState.TAPE_FAILED
+	if is_instance_valid(_drip_particles):
+		_drip_particles.emitting = should_emit
+	if is_instance_valid(_splash_particles):
+		_splash_particles.emitting = should_emit
+
+
+func _make_drip_texture() -> ImageTexture:
+	var image: Image = Image.create(16, 16, false, Image.FORMAT_RGBA8)
+	image.fill(Color(1.0, 1.0, 1.0, 0.0))
+	for y: int in range(16):
+		for x: int in range(16):
+			var dx: float = float(x) - 7.5
+			var dy: float = float(y) - 7.5
+			var distance: float = sqrt(dx * dx + dy * dy) / 7.5
+			var alpha: float = clampf(1.0 - distance * distance, 0.0, 1.0)
+			image.set_pixel(x, y, Color(1.0, 1.0, 1.0, alpha))
+	return ImageTexture.create_from_image(image)
 
 
 func set_label(text: String) -> void:
@@ -53,10 +155,23 @@ func set_label(text: String) -> void:
 
 func _draw() -> void:
 	_draw_floor_zone()
+	_draw_growing_puddle()
 	_draw_ac_unit()
 	_draw_rack()
 	_draw_state_overlay()
 	_draw_label()
+
+
+func _draw_growing_puddle() -> void:
+	if _puddle_radius < 1.0:
+		return
+	var center: Vector2 = PUDDLE_CENTER_OFFSET
+	var size: Vector2 = Vector2(_puddle_radius, _puddle_radius * PUDDLE_ASPECT)
+	_draw_ellipse(center + Vector2(3.0, 4.0), size * 1.02, Color(0.0, 0.0, 0.0, 0.30))
+	_draw_ellipse(center, size, WATER_DARK)
+	_draw_ellipse(center + Vector2(-_puddle_radius * 0.18, -_puddle_radius * 0.07), size * 0.55, WATER_COLOR)
+	# A bright highlight at the surface so the wet sheen reads
+	_draw_ellipse(center + Vector2(-_puddle_radius * 0.3, -_puddle_radius * 0.12), size * 0.28, Color(0.823529, 0.929412, 0.952941, 0.55))
 
 
 func _draw_floor_zone() -> void:
@@ -77,9 +192,7 @@ func _draw_ac_unit() -> void:
 	for index: int in range(5):
 		var x: float = unit_rect.position.x + 18.0 + float(index) * 26.0
 		draw_line(Vector2(x, unit_rect.position.y + 9.0), Vector2(x + 13.0, unit_rect.position.y + 23.0), Color(0.349020, 0.349020, 0.321569, 0.7), 2.0, true)
-	if state == LeakState.LEAKING or state == LeakState.TAPE_FAILED:
-		var drip_x: float = sin(_time * 5.0) * 10.0
-		draw_circle(Vector2(drip_x, -88.0 + fmod(_time * 44.0, 36.0)), 3.5, WATER_COLOR)
+	# Drip is now rendered by the GPUParticles2D set up in _setup_particles.
 
 
 func _draw_rack() -> void:
@@ -103,25 +216,14 @@ func _draw_rack() -> void:
 func _draw_state_overlay() -> void:
 	match state:
 		LeakState.LEAKING:
-			_draw_puddle(1.0)
 			_draw_warning_burst("مويه!")
 		LeakState.TAPE_PATCHED:
 			_draw_tape_patch(false)
 		LeakState.BUCKET_PLACED:
 			_draw_bucket()
 		LeakState.TAPE_FAILED:
-			_draw_puddle(1.25)
 			_draw_tape_patch(true)
 			_draw_warning_burst("الشطرطون خان!")
-
-
-func _draw_puddle(scale_amount: float) -> void:
-	var center: Vector2 = Vector2(0.0, 112.0)
-	_draw_ellipse(center, Vector2(62.0, 18.0) * scale_amount, WATER_DARK)
-	_draw_ellipse(center + Vector2(-9.0, -3.0), Vector2(38.0, 10.0) * scale_amount, WATER_COLOR)
-	for index: int in range(3):
-		var drop_y: float = -62.0 + fmod((_time * 55.0) + float(index) * 22.0, 116.0)
-		draw_circle(Vector2(-12.0 + float(index) * 12.0, drop_y), 2.2, WATER_COLOR)
 
 
 func _draw_tape_patch(failed: bool) -> void:
